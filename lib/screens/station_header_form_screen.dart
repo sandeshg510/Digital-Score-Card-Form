@@ -24,8 +24,8 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen> {
       TextEditingController();
   final TextEditingController _designationController = TextEditingController();
   final TextEditingController _trainNoController = TextEditingController();
-  final TextEditingController _noOfCoachesAttendedController =
-      TextEditingController();
+  // Removed _noOfCoachesAttendedController as it will be calculated
+  // final TextEditingController _noOfCoachesAttendedController = TextEditingController();
   final TextEditingController _totalNoOfCoachesController =
       TextEditingController();
 
@@ -48,8 +48,8 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen> {
     _designationController.text =
         provider.stationInspectionData.designation ?? '';
     _trainNoController.text = provider.stationInspectionData.trainNo ?? '';
-    _noOfCoachesAttendedController.text =
-        provider.stationInspectionData.noOfCoachesAttended?.toString() ?? '';
+    // No longer initializing _noOfCoachesAttendedController
+    // _noOfCoachesAttendedController.text = provider.stationInspectionData.noOfCoachesAttended?.toString() ?? '';
     _totalNoOfCoachesController.text =
         provider.stationInspectionData.totalNoOfCoaches?.toString() ?? '';
 
@@ -93,7 +93,8 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen> {
     _nameOfSupervisorController.dispose();
     _designationController.dispose();
     _trainNoController.dispose();
-    _noOfCoachesAttendedController.dispose();
+    // No longer disposing _noOfCoachesAttendedController
+    // _noOfCoachesAttendedController.dispose();
     _totalNoOfCoachesController.dispose();
     super.dispose();
   }
@@ -164,6 +165,16 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen> {
   void _navigateToCoaches() {
     final provider = Provider.of<InspectionProvider>(context, listen: false);
     if (_formKey.currentState!.validate()) {
+      // Validate that totalNoOfCoaches is entered and is positive
+      if (provider.stationInspectionData.totalNoOfCoaches == null ||
+          provider.stationInspectionData.totalNoOfCoaches! <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a valid number of coaches (>0)'),
+          ),
+        );
+        return;
+      }
       // All required header fields are valid, navigate to the scoring page
       Navigator.push(
         context,
@@ -200,198 +211,233 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen> {
         );
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Station Inspection Details')),
+          appBar: AppBar(
+            title: const Text(
+              'Station Inspection',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+            centerTitle: true,
+            elevation: 1,
+          ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Form(
               key: _formKey,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextFormField(
-                    controller: _woNoController,
-                    decoration: const InputDecoration(
-                      labelText: 'W.O. No.',
-                      border: OutlineInputBorder(),
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    onChanged: inspectionProvider.updateStationWoNo,
-                  ),
-                  const SizedBox(height: 16.0),
-                  GestureDetector(
-                    onTap: () =>
-                        _selectDate(context, inspectionProvider, false),
-                    child: AbsorbPointer(
-                      child: TextFormField(
-                        controller: TextEditingController(
-                          text: _selectedDateText,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Date',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        validator: (value) =>
-                            inspectionProvider.stationInspectionData.date ==
-                                null
-                            ? 'Date is required'
-                            : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _nameOfWorkController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name of Work',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateStationNameOfWork,
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _nameOfContractorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name of Contractor',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateStationNameOfContractor,
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Contractor Name is required'
-                        : null,
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _nameOfSupervisorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name of Supervisor',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateStationNameOfSupervisor,
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Supervisor Name is required'
-                        : null,
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _designationController,
-                    decoration: const InputDecoration(
-                      labelText: 'Designation',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateStationDesignation,
-                  ),
-                  const SizedBox(height: 16.0),
-                  GestureDetector(
-                    onTap: () => _selectDate(context, inspectionProvider, true),
-                    child: AbsorbPointer(
-                      child: TextFormField(
-                        controller: TextEditingController(
-                          text: _selectedInspectionDateText,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Date of Inspection',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        validator: (value) =>
-                            inspectionProvider
-                                    .stationInspectionData
-                                    .dateOfInspection ==
-                                null
-                            ? 'Inspection Date is required'
-                            : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _trainNoController,
-                    decoration: const InputDecoration(
-                      labelText: 'Train No.',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateStationTrainNo,
-                  ),
-                  const SizedBox(height: 16.0),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () =>
-                              _selectTime(context, inspectionProvider, true),
-                          child: AbsorbPointer(
-                            child: TextFormField(
-                              controller: TextEditingController(
-                                text: _selectedArrivalTimeText,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Arrival Time',
-                                border: OutlineInputBorder(),
-                                suffixIcon: Icon(Icons.access_time),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Work Details',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _woNoController,
+                            label: 'W.O. No.',
+                            onChanged: inspectionProvider.updateStationWoNo,
+                          ),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () =>
+                                _selectDate(context, inspectionProvider, false),
+                            child: AbsorbPointer(
+                              child: _buildTextField(
+                                controller: TextEditingController(
+                                  text: _selectedDateText,
+                                ),
+                                label: 'Date',
+                                suffix: Icons.calendar_today,
+                                validator: (_) =>
+                                    inspectionProvider
+                                            .stationInspectionData
+                                            .date ==
+                                        null
+                                    ? 'Date is required'
+                                    : null,
                               ),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          _buildTextField(
+                            controller: _nameOfWorkController,
+                            label: 'Name of Work',
+                            onChanged:
+                                inspectionProvider.updateStationNameOfWork,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTextField(
+                            controller: _nameOfContractorController,
+                            label: 'Name of Contractor',
+                            onChanged: inspectionProvider
+                                .updateStationNameOfContractor,
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Contractor Name is required'
+                                : null,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTextField(
+                            controller: _nameOfSupervisorController,
+                            label: 'Name of Supervisor',
+                            onChanged: inspectionProvider
+                                .updateStationNameOfSupervisor,
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Supervisor Name is required'
+                                : null,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTextField(
+                            controller: _designationController,
+                            label: 'Designation',
+                            onChanged:
+                                inspectionProvider.updateStationDesignation,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 16.0),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () =>
-                              _selectTime(context, inspectionProvider, false),
-                          child: AbsorbPointer(
-                            child: TextFormField(
-                              controller: TextEditingController(
-                                text: _selectedDepTimeText,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Dep. Time',
-                                border: OutlineInputBorder(),
-                                suffixIcon: Icon(Icons.access_time),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Train Details',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          GestureDetector(
+                            onTap: () =>
+                                _selectDate(context, inspectionProvider, true),
+                            child: AbsorbPointer(
+                              child: _buildTextField(
+                                controller: TextEditingController(
+                                  text: _selectedInspectionDateText,
+                                ),
+                                label: 'Date of Inspection',
+                                suffix: Icons.calendar_today,
+                                validator: (_) =>
+                                    inspectionProvider
+                                            .stationInspectionData
+                                            .dateOfInspection ==
+                                        null
+                                    ? 'Inspection Date is required'
+                                    : null,
                               ),
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          _buildTextField(
+                            controller: _trainNoController,
+                            label: 'Train No.',
+                            onChanged: inspectionProvider.updateStationTrainNo,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _selectTime(
+                                    context,
+                                    inspectionProvider,
+                                    true,
+                                  ),
+                                  child: AbsorbPointer(
+                                    child: _buildTextField(
+                                      controller: TextEditingController(
+                                        text: _selectedArrivalTimeText,
+                                      ),
+                                      label: 'Arrival Time',
+                                      suffix: Icons.access_time,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _selectTime(
+                                    context,
+                                    inspectionProvider,
+                                    false,
+                                  ),
+                                  child: AbsorbPointer(
+                                    child: _buildTextField(
+                                      controller: TextEditingController(
+                                        text: _selectedDepTimeText,
+                                      ),
+                                      label: 'Departure Time',
+                                      suffix: Icons.access_time,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTextField(
+                            controller: _totalNoOfCoachesController,
+                            label: 'Total No. of Coaches',
+                            keyboardType: TextInputType.number,
+                            onChanged: (v) => inspectionProvider
+                                .updateStationTotalNoOfCoaches(int.tryParse(v)),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Total coaches is required';
+                              }
+                              if (int.tryParse(value) == null ||
+                                  int.parse(value) <= 0) {
+                                return 'Enter a valid number (>0)';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: _navigateToCoaches,
+                      icon: const Icon(Icons.arrow_forward),
+                      label: const Text('Continue'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 14,
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _noOfCoachesAttendedController,
-                    decoration: const InputDecoration(
-                      labelText: 'No. of Coaches attended by contractor',
-                      border: OutlineInputBorder(),
                     ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      inspectionProvider.updateStationNoOfCoachesAttended(
-                        int.tryParse(value) ?? 0,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _totalNoOfCoachesController,
-                    decoration: const InputDecoration(
-                      labelText: 'Total No. of Coaches in the train',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      inspectionProvider.updateStationTotalNoOfCoaches(
-                        int.tryParse(value) ?? 0,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24.0),
-                  ElevatedButton(
-                    onPressed: _navigateToCoaches,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 15,
-                      ),
-                      textStyle: const TextStyle(fontSize: 18),
-                    ),
-                    child: const Text('Continue to Coach Scoring'),
                   ),
                 ],
               ),
@@ -399,6 +445,29 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    IconData? suffix,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    void Function(String)? onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        suffixIcon: suffix != null ? Icon(suffix) : null,
+      ),
+      keyboardType: keyboardType,
+      validator: validator,
+      onChanged: onChanged,
     );
   }
 }

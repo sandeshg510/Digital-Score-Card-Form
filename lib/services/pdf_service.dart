@@ -2,8 +2,8 @@
 
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // <--- Make sure this line is present and correct!
+import 'package:flutter/material.dart'; // Keep this for TimeOfDay, etc.
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -11,15 +11,26 @@ import 'package:printing/printing.dart';
 import '../models/station_inspection_data.dart';
 
 class PdfService {
+  // Helper to map Flutter TextAlign to pdf Alignment
+  // Moved this to be a static method so it can be called correctly.
+  static pw.Alignment _getAlignment(pw.TextAlign textAlign) {
+    switch (textAlign) {
+      case pw.TextAlign.left:
+        return pw.Alignment.centerLeft;
+      case pw.TextAlign.right:
+        return pw.Alignment.centerRight;
+      case pw.TextAlign.center:
+      default:
+        return pw.Alignment.center;
+    }
+  }
+
   static Future<Uint8List> generateStationScoreCardPdf(
     StationInspectionData data,
   ) async {
     final pdf = pw.Document();
 
-    // Load a font that supports Indian languages if needed, otherwise use a default.
-    // For simplicity, we'll use a standard font here.
-    final font =
-        await PdfGoogleFonts.poppinsRegular(); // Or .openSansRegular(), .notoSansRegular()
+    final font = await PdfGoogleFonts.poppinsRegular();
 
     // Helper to format dates and times
     String formatDate(DateTime? date) {
@@ -33,64 +44,274 @@ class PdfService {
       return DateFormat('hh:mm a').format(dt);
     }
 
-    // Prepare table data for scores
-    // Header row: 'Sl No', 'Itemized Description of work', 'Tlm', 'C1', 'C2', ..., 'C13'
-    final List<List<String>> tableData = [];
+    // List to hold table rows
+    final List<pw.TableRow> tableRows = [];
 
-    // Add main header row for coach IDs
-    final List<String> coachHeaders = [
-      'Sl No',
-      'Itemized Description of work',
-      'Tlm',
+    // Cell styling helper
+    pw.Container _buildCell(
+      pw.Widget? child, {
+      pw.TextAlign? textAlign,
+      pw.Border? border,
+      pw.EdgeInsets? padding = const pw.EdgeInsets.all(2),
+      double? height,
+    }) {
+      return pw.Container(
+        alignment: textAlign != null
+            ? _getAlignment(textAlign)
+            : pw.Alignment.center,
+        padding: padding,
+        decoration: border != null ? pw.BoxDecoration(border: border) : null,
+        height: height,
+        child: child,
+      );
+    }
+
+    // Header row
+    final List<pw.Widget> headerCells = [
+      _buildCell(
+        pw.Text(
+          'Sl No',
+          style: pw.TextStyle(
+            font: font,
+            fontWeight: pw.FontWeight.bold,
+            fontSize: 8,
+          ),
+        ),
+        textAlign: pw.TextAlign.center,
+        border: pw.Border.all(width: 0.5),
+      ),
+      _buildCell(
+        pw.Text(
+          'Itemized Description of work',
+          style: pw.TextStyle(
+            font: font,
+            fontWeight: pw.FontWeight.bold,
+            fontSize: 8,
+          ),
+        ),
+        textAlign: pw.TextAlign.center,
+        border: pw.Border.all(width: 0.5),
+      ),
+      _buildCell(
+        pw.Text(
+          'T\'let',
+          style: pw.TextStyle(
+            font: font,
+            fontWeight: pw.FontWeight.bold,
+            fontSize: 8,
+          ),
+        ),
+        textAlign: pw.TextAlign.center,
+        border: pw.Border.all(width: 0.5),
+      ), // Changed to T'let
     ];
-    coachHeaders.addAll(data.coachColumns);
-    tableData.add(coachHeaders);
+    // Add dynamic coach headers
+    for (var coachId in data.coachColumns) {
+      headerCells.add(
+        _buildCell(
+          pw.Text(
+            coachId,
+            style: pw.TextStyle(
+              font: font,
+              fontWeight: pw.FontWeight.bold,
+              fontSize: 8,
+            ),
+          ),
+          textAlign: pw.TextAlign.center,
+          border: pw.Border.all(width: 0.5),
+        ),
+      );
+    }
+    tableRows.add(pw.TableRow(children: headerCells));
 
     int slNo = 1;
 
+    // Iterate through sections and then parameters to build the table with merged cells
     for (var section in data.sections) {
-      // Add a row for the section name (span across columns)
-      tableData.add([
-        section.name,
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-      ]); // Assuming max columns for span
-
       for (var parameter in section.parameters) {
-        for (var subParameter in parameter.subParameters) {
-          final row = [
-            slNo.toString(),
-            subParameter.name, // The friendly name (e.g., Toilet 1)
-            subParameter.id, // The 'Tlm' value (e.g., T1)
-          ];
-          // Add scores for each coach
-          for (var coachId in data.coachColumns) {
-            // Check if the sub-parameter applies to this coach
-            if (subParameter.coachIds.contains(coachId)) {
-              row.add(
-                (subParameter.scores[coachId] ?? 0).toString(),
-              ); // Use 0 for null scores
-            } else {
-              row.add(''); // Empty cell if not applicable
-            }
-          }
-          tableData.add(row);
-          slNo++;
+        if (parameter.subParameters.isEmpty) continue;
+
+        final int subParameterCount = parameter.subParameters.length;
+
+        // --- First row of the parameter block (with Sl No and Itemized Description) ---
+        final List<pw.Widget> firstRowCells = [];
+
+        // Sl No cell (with top, left, right border, but not bottom)
+        firstRowCells.add(
+          _buildCell(
+            pw.Text(
+              slNo.toString(),
+              style: pw.TextStyle(font: font, fontSize: 8),
+            ),
+            textAlign: pw.TextAlign.center,
+            border: pw.Border(
+              top: const pw.BorderSide(width: 0.5),
+              left: const pw.BorderSide(width: 0.5),
+              right: const pw.BorderSide(width: 0.5),
+              bottom: subParameterCount == 1
+                  ? const pw.BorderSide(width: 0.5)
+                  : pw
+                        .BorderSide
+                        .none, // Only bottom if it's a single sub-parameter
+            ),
+          ),
+        );
+
+        // Itemized Description of work cell (with top, left, right border, but not bottom)
+        firstRowCells.add(
+          _buildCell(
+            pw.Text(
+              parameter.name,
+              style: pw.TextStyle(font: font, fontSize: 8),
+            ),
+            textAlign: pw.TextAlign.left, // Use pw.TextAlign.left directly
+            border: pw.Border(
+              top: const pw.BorderSide(width: 0.5),
+              left: const pw.BorderSide(width: 0.5),
+              right: const pw.BorderSide(width: 0.5),
+              bottom: subParameterCount == 1
+                  ? const pw.BorderSide(width: 0.5)
+                  : pw
+                        .BorderSide
+                        .none, // Only bottom if it's a single sub-parameter
+            ),
+          ),
+        );
+
+        // First T'let (Tlm) and score cells (with all borders)
+        final firstSubParameter = parameter.subParameters.first;
+        firstRowCells.add(
+          _buildCell(
+            pw.Text(
+              firstSubParameter.id,
+              style: pw.TextStyle(font: font, fontSize: 8),
+            ),
+            textAlign: pw.TextAlign.center,
+            border: pw.Border.all(width: 0.5),
+          ),
+        );
+
+        for (var coachId in data.coachColumns) {
+          firstRowCells.add(
+            _buildCell(
+              pw.Text(
+                firstSubParameter.coachIds.contains(coachId)
+                    ? (firstSubParameter.scores[coachId] ?? 0).toString()
+                    : '',
+                style: pw.TextStyle(font: font, fontSize: 8),
+              ),
+              textAlign: pw.TextAlign.center,
+              border: pw.Border.all(width: 0.5),
+            ),
+          );
         }
+        tableRows.add(pw.TableRow(children: firstRowCells));
+
+        // --- Subsequent rows for sub-parameters (without Sl No and Itemized Description) ---
+        for (int i = 1; i < subParameterCount; i++) {
+          final subParameter = parameter.subParameters[i];
+          final List<pw.Widget> subRowCells = [];
+
+          // Add empty cells for spanned columns (Sl No and Itemized Description),
+          // maintaining only left and right borders, no top/bottom for merging effect.
+          final isLastSubParameter = (i == subParameterCount - 1);
+
+          subRowCells.add(
+            _buildCell(
+              pw.SizedBox.shrink(), // Empty cell for visual spanning
+              border: pw.Border(
+                left: const pw.BorderSide(width: 0.5),
+                right: const pw.BorderSide(width: 0.5),
+                bottom: isLastSubParameter
+                    ? const pw.BorderSide(width: 0.5)
+                    : pw
+                          .BorderSide
+                          .none, // Only bottom border on the last sub-parameter row for this group
+              ),
+            ),
+          );
+          subRowCells.add(
+            _buildCell(
+              pw.SizedBox.shrink(), // Empty cell for visual spanning
+              border: pw.Border(
+                left: const pw.BorderSide(width: 0.5),
+                right: const pw.BorderSide(width: 0.5),
+                bottom: isLastSubParameter
+                    ? const pw.BorderSide(width: 0.5)
+                    : pw
+                          .BorderSide
+                          .none, // Only bottom border on the last sub-parameter row for this group
+              ),
+            ),
+          );
+
+          // T'let (Tlm) and score cells (with all borders)
+          subRowCells.add(
+            _buildCell(
+              pw.Text(
+                subParameter.id,
+                style: pw.TextStyle(font: font, fontSize: 8),
+              ),
+              textAlign: pw.TextAlign.center,
+              border: pw.Border.all(width: 0.5),
+            ),
+          );
+
+          for (var coachId in data.coachColumns) {
+            subRowCells.add(
+              _buildCell(
+                pw.Text(
+                  subParameter.coachIds.contains(coachId)
+                      ? (subParameter.scores[coachId] ?? 0).toString()
+                      : '',
+                  style: pw.TextStyle(font: font, fontSize: 8),
+                ),
+                textAlign: pw.TextAlign.center,
+                border: pw.Border.all(width: 0.5),
+              ),
+            );
+          }
+          tableRows.add(pw.TableRow(children: subRowCells));
+        }
+
+        // Add remarks row if remarks exist for the parameter.
+        // This row will typically span all columns and have full borders.
+        if (parameter.remarks != null && parameter.remarks!.isNotEmpty) {
+          tableRows.add(
+            pw.TableRow(
+              children: [
+                _buildCell(
+                  pw.SizedBox.shrink(),
+                  border: pw.Border.all(width: 0.5),
+                ), // Sl No column - empty
+                _buildCell(
+                  pw.Text(
+                    'Remarks for ${parameter.name}:',
+                    style: pw.TextStyle(font: font, fontSize: 8),
+                  ),
+                  textAlign: pw.TextAlign.left,
+                  border: pw.Border.all(width: 0.5),
+                ),
+                _buildCell(
+                  pw.Text(
+                    parameter.remarks!,
+                    style: pw.TextStyle(font: font, fontSize: 8),
+                  ),
+                  textAlign: pw.TextAlign.left,
+                  border: pw.Border.all(width: 0.5),
+                ),
+                // Remaining columns for coach scores - empty with borders
+                for (int i = 0; i < data.coachColumns.length; i++)
+                  _buildCell(
+                    pw.SizedBox.shrink(),
+                    border: pw.Border.all(width: 0.5),
+                  ),
+              ],
+            ),
+          );
+        }
+
+        slNo++; // Increment Sl No for the next main parameter
       }
     }
 
@@ -241,12 +462,20 @@ class PdfService {
                       style: pw.TextStyle(font: font, fontSize: 10),
                     ),
                   ),
-                  pw.Expanded(
-                    child: pw.SizedBox(),
-                  ), // Empty expanded for spacing
-                  pw.Expanded(
-                    child: pw.SizedBox(),
-                  ), // Empty expanded for spacing
+                  // These fields are not in the current data model nor requested for calculations
+                  // in provider due to 'no changes to files' instruction.
+                  // pw.Expanded(
+                  //   child: pw.Text(
+                  //     'Total Score obtained: ${data.totalScoreObtained ?? 'N/A'}%',
+                  //     style: pw.TextStyle(font: font, fontSize: 10),
+                  //   ),
+                  // ),
+                  // pw.Expanded(
+                  //   child: pw.Text(
+                  //     'Inaccessible: ${data.inaccessibleCount ?? 'N/A'}x',
+                  //     style: pw.TextStyle(font: font, fontSize: 10),
+                  //   ),
+                  // ),
                 ],
               ),
               pw.SizedBox(height: 15),
@@ -261,27 +490,18 @@ class PdfService {
                 ),
               ),
               pw.SizedBox(height: 5),
-              pw.Table.fromTextArray(
-                headers: tableData.first,
-                data: tableData.sublist(1),
-                border: pw.TableBorder.all(),
-                headerStyle: pw.TextStyle(
-                  font: font,
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 8,
-                ),
-                cellStyle: pw.TextStyle(font: font, fontSize: 8),
+              pw.Table(
                 columnWidths: {
                   0: const pw.FixedColumnWidth(20), // Sl No
-                  1: const pw.FixedColumnWidth(120), // Itemized Description
-                  2: const pw.FixedColumnWidth(25), // Tlm
+                  1: const pw.FlexColumnWidth(
+                    3,
+                  ), // Itemized Description of work (expanded)
+                  2: const pw.FixedColumnWidth(25), // T'let
                   // Distribute coach columns equally
                   for (int i = 0; i < data.coachColumns.length; i++)
                     (i + 3): const pw.FlexColumnWidth(1),
                 },
-                cellAlignment: pw.Alignment.center,
-                headerAlignment: pw.Alignment.center,
-                cellPadding: const pw.EdgeInsets.all(2),
+                children: tableRows,
               ),
 
               pw.SizedBox(height: 10),

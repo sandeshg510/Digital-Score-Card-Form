@@ -2,22 +2,8 @@
 
 import 'package:flutter/material.dart';
 
-// Helper for default coach columns
-const List<String> defaultCoachColumns = [
-  'C1',
-  'C2',
-  'C3',
-  'C4',
-  'C5',
-  'C6',
-  'C7',
-  'C8',
-  'C9',
-  'C10',
-  'C11',
-  'C12',
-  'C13',
-];
+// Removed defaultCoachColumns as it will be dynamic
+// const List<String> defaultCoachColumns = [...];
 
 class StationInspectionData {
   final String? woNo;
@@ -53,6 +39,7 @@ class StationInspectionData {
   });
 
   factory StationInspectionData.initial() {
+    // Initialize with empty lists for dynamic content
     return StationInspectionData(
       woNo: null,
       date: null,
@@ -66,114 +53,10 @@ class StationInspectionData {
       depTime: null,
       noOfCoachesAttended: null,
       totalNoOfCoaches: null,
-      coachColumns: defaultCoachColumns, // Initialize with default coaches
-      sections: [
-        StationSection(
-          name:
-              '', // Empty name for the main section to avoid extra heading in UI
-          parameters: [
-            StationParameter(
-              name:
-                  'Toilet cleaning complete including pan with High Pressure Jet machine, cleaning wiping of wash basin, mirror & shelves, , Spraying of Air Freshener & Mosquito Repellent',
-              subParameters: [
-                StationSubParameter(
-                  id: 'T1',
-                  name: 'Toilet 1',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-                StationSubParameter(
-                  id: 'T2',
-                  name: 'Toilet 2',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-                StationSubParameter(
-                  id: 'T3',
-                  name: 'Toilet 3',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-                StationSubParameter(
-                  id: 'T4',
-                  name: 'Toilet 4',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-              ],
-              remarks: null,
-            ),
-            StationParameter(
-              name:
-                  'Cleaning & wiping of outside washbasin, mirror & shelves in door way area',
-              subParameters: [
-                StationSubParameter(
-                  id: 'B1',
-                  name: 'Basin 1',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-                StationSubParameter(
-                  id: 'B2',
-                  name: 'Basin 2',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-              ],
-              remarks: null,
-            ),
-            StationParameter(
-              name:
-                  'Vestibule area, Doorway area, area between two toilets and footsteps.',
-              subParameters: [
-                StationSubParameter(
-                  id: 'D1',
-                  name: 'Doorway Area 1',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-                StationSubParameter(
-                  id: 'D2',
-                  name: 'Doorway Area 2',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-              ],
-              remarks: null,
-            ),
-            StationParameter(
-              name: 'Disposal of collected waste from Coaches & AC Bins.',
-              subParameters: [
-                StationSubParameter(
-                  id: 'Main', // Changed from 'D3' to 'Main' as per your example, assuming a single point
-                  name: 'Disposal of collected waste',
-                  coachIds: defaultCoachColumns,
-                  scores: {
-                    for (var coachId in defaultCoachColumns) coachId: null,
-                  },
-                ),
-              ],
-              remarks: null,
-            ),
-          ],
-        ),
-      ],
+      coachColumns: [], // Start with no coaches
+      sections: _createInitialStationSections(
+        [],
+      ), // Pass an empty list to initialize sections
     );
   }
 
@@ -320,4 +203,97 @@ class StationSubParameter {
   Map<String, dynamic> toJson() {
     return {'id': id, 'name': name, 'coachIds': coachIds, 'scores': scores};
   }
+}
+
+// Helper function to create initial sections based on provided coach IDs
+// This function will be called by the provider when totalNoOfCoaches changes
+List<StationSection> _createInitialStationSections(List<String> coachColumns) {
+  return [
+    StationSection(
+      name: '', // Empty name for the main section to avoid extra heading in UI
+      parameters: [
+        StationParameter(
+          name:
+              'Toilet cleaning complete including pan with High Pressure Jet machine, cleaning wiping of wash basin, mirror & shelves, , Spraying of Air Freshener & Mosquito Repellent',
+          subParameters: [
+            StationSubParameter(
+              id: 'T1',
+              name: 'Toilet 1',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+            StationSubParameter(
+              id: 'T2',
+              name: 'Toilet 2',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+            StationSubParameter(
+              id: 'T3',
+              name: 'Toilet 3',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+            StationSubParameter(
+              id: 'T4',
+              name: 'Toilet 4',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+          ],
+          remarks: null,
+        ),
+        StationParameter(
+          name:
+              'Cleaning & wiping of outside washbasin, mirror & shelves in door way area',
+          subParameters: [
+            StationSubParameter(
+              id: 'B1',
+              name: 'Basin 1',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+            StationSubParameter(
+              id: 'B2',
+              name: 'Basin 2',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+          ],
+          remarks: null,
+        ),
+        StationParameter(
+          name:
+              'Vestibule area, Doorway area, area between two toilets and footsteps.',
+          subParameters: [
+            StationSubParameter(
+              id: 'D1',
+              name: 'Doorway Area 1',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+            StationSubParameter(
+              id: 'D2',
+              name: 'Doorway Area 2',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+          ],
+          remarks: null,
+        ),
+        StationParameter(
+          name: 'Disposal of collected waste from Coaches & AC Bins.',
+          subParameters: [
+            StationSubParameter(
+              id: 'Main',
+              name: 'Disposal of collected waste',
+              coachIds: coachColumns,
+              scores: {for (var coachId in coachColumns) coachId: null},
+            ),
+          ],
+          remarks: null,
+        ),
+      ],
+    ),
+  ];
 }
