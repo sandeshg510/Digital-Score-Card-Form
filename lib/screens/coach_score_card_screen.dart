@@ -1,12 +1,18 @@
 // lib/screens/coach_score_card_screen.dart
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart'; // For TextInputFormatter
+import 'package:printing/printing.dart'; // Import the printing package
 import 'package:provider/provider.dart';
 
-import '../providers/inspection_provider.dart';
+import '../constants/global_variables.dart';
+import '../core/common/widgets/basics.dart'; // Ensure this file exists for verticalSpace etc. and CommonWidgets mixin
+import '../core/common/widgets/gradient_app_bar.dart';
+import '../core/common/widgets/gradient_button.dart';
+// Corrected import: Make sure this path points to your updated model file
+import '../models/coach_inspection_data.dart';
+import '../providers/coach_cleaning_provider.dart';
+import '../services/coach_cleaning_pdf_service.dart'; // Import your PdfService
 
 class CoachScoreCardScreen extends StatefulWidget {
   const CoachScoreCardScreen({super.key});
@@ -15,450 +21,425 @@ class CoachScoreCardScreen extends StatefulWidget {
   State<CoachScoreCardScreen> createState() => _CoachScoreCardScreenState();
 }
 
-class _CoachScoreCardScreenState extends State<CoachScoreCardScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _agreementNoAndDateController =
-      TextEditingController();
-  final TextEditingController _nameOfContractorController =
-      TextEditingController();
-  final TextEditingController _nameOfSupervisorController =
-      TextEditingController();
-  final TextEditingController _trainNoController = TextEditingController();
-  final TextEditingController _noOfCoachesAttendedController =
-      TextEditingController();
+class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
+    with SingleTickerProviderStateMixin, CommonWidgets {
+  late TabController _tabController;
+  final List<TextEditingController> _remarkControllers = [];
+  final Map<int, Map<Section, TextEditingController>> _scoreControllers = {};
+  final List<GlobalKey<FormState>> _formKeys = [];
 
-  String _selectedDateOfInspectionText = "Select Date of Inspection";
-  String _selectedTimeWorkStartedText = "Select Time";
-  String _selectedTimeWorkCompletedText = "Select Time";
+  // Instantiate PdfService
+  final PdfServices _pdfService = PdfServices();
 
   @override
   void initState() {
     super.initState();
-    final provider = Provider.of<InspectionProvider>(context, listen: false);
-    _agreementNoAndDateController.text =
-        provider.coachInspectionData.agreementNoAndDate ?? '';
-    _nameOfContractorController.text =
-        provider.coachInspectionData.nameOfContractor ?? '';
-    _nameOfSupervisorController.text =
-        provider.coachInspectionData.nameOfSupervisor ?? '';
-    _trainNoController.text = provider.coachInspectionData.trainNo ?? '';
-    _noOfCoachesAttendedController.text =
-        provider.coachInspectionData.noOfCoachesAttended?.toString() ?? '';
+    final provider = Provider.of<CoachCleaningProvider>(context, listen: false);
+    final coachColumns = provider.coachCleaningInspectionData.coachColumns;
 
-    // Initial display update for dates and times
-    _updateDateDisplay(
-      provider.coachInspectionData.dateOfInspection,
-      (text) => _selectedDateOfInspectionText = text,
-    );
-    _updateTimeDisplay(
-      provider.coachInspectionData.timeWorkStarted,
-      (text) => _selectedTimeWorkStartedText = text,
-    );
-    _updateTimeDisplay(
-      provider.coachInspectionData.timeWorkCompleted,
-      (text) => _selectedTimeWorkCompletedText = text,
-    );
+    // Initialize TabController only if coachColumns is not empty to avoid errors
+    // if no coaches are defined initially.
+    _tabController = TabController(length: coachColumns.length, vsync: this);
+
+    _initializeControllers(coachColumns);
+
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        // Optionally, you can trigger a save or data refresh here if needed
+      }
+    });
   }
 
-  // Helper function to update date display text
-  void _updateDateDisplay(DateTime? date, Function(String) setText) {
-    if (date != null) {
-      setText("${date.day}/${date.month}/${date.year}");
-    }
-  }
+  void _initializeControllers(List<CoachColumnData> coachColumns) {
+    _remarkControllers.clear();
+    _scoreControllers.clear();
+    _formKeys.clear();
 
-  // Helper function to update time display text using context
-  void _updateTimeDisplay(TimeOfDay? time, Function(String) setText) {
-    if (time != null) {
-      setText(time.format(context)); // **FIX: Pass context here**
+    // Get scoring sections dynamically from the inspection data model
+    // This is crucial to match the Sections defined in your model
+    final List<Section> scoringSections = Section.values
+        .where((s) => s.maxMarks != null) // Filter for actual scoring sections
+        .toList();
+
+    for (int i = 0; i < coachColumns.length; i++) {
+      _remarkControllers.add(
+        TextEditingController(text: coachColumns[i].remarks ?? ''),
+      );
+      _scoreControllers[i] = {};
+      _formKeys.add(GlobalKey<FormState>());
+
+      for (var section in scoringSections) {
+        final score = coachColumns[i].scores[section];
+        _scoreControllers[i]![section] = TextEditingController(
+          text: score?.toString() ?? '',
+        );
+      }
     }
   }
 
   @override
   void dispose() {
-    _agreementNoAndDateController.dispose();
-    _nameOfContractorController.dispose();
-    _nameOfSupervisorController.dispose();
-    _trainNoController.dispose();
-    _noOfCoachesAttendedController.dispose();
+    _tabController.dispose();
+    for (var controller in _remarkControllers) {
+      controller.dispose();
+    }
+    _scoreControllers.values.forEach((sectionControllers) {
+      sectionControllers.values.forEach((controller) {
+        controller.dispose();
+      });
+    });
     super.dispose();
   }
 
-  Future<void> _selectDate(
-    BuildContext context,
-    InspectionProvider provider,
-  ) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate:
-          provider.coachInspectionData.dateOfInspection ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null &&
-        picked != provider.coachInspectionData.dateOfInspection) {
-      provider.updateCoachDateOfInspection(picked);
-      setState(() {
-        _selectedDateOfInspectionText =
-            "${picked.day}/${picked.month}/${picked.year}";
-      });
-    }
-  }
-
-  Future<void> _selectTime(
-    BuildContext context,
-    InspectionProvider provider,
-    bool isStartedTime,
-  ) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: isStartedTime
-          ? provider.coachInspectionData.timeWorkStarted ?? TimeOfDay.now()
-          : provider.coachInspectionData.timeWorkCompleted ?? TimeOfDay.now(),
-    );
-    if (picked != null) {
-      if (isStartedTime) {
-        if (picked != provider.coachInspectionData.timeWorkStarted) {
-          provider.updateCoachTimeWorkStarted(picked);
-          setState(() {
-            _selectedTimeWorkStartedText = picked.format(
-              context,
-            ); // **FIX: Pass context here**
-          });
-        }
-      } else {
-        if (picked != provider.coachInspectionData.timeWorkCompleted) {
-          provider.updateCoachTimeWorkCompleted(picked);
-          setState(() {
-            _selectedTimeWorkCompletedText = picked.format(
-              context,
-            ); // **FIX: Pass context here**
-          });
-        }
-      }
-    }
-  }
-
-  Future<void> _submitForm() async {
-    final provider = Provider.of<InspectionProvider>(context, listen: false);
-
-    if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields.')),
-      );
-      return;
-    }
-
-    if (!provider.isCoachFormValid()) {
+  void _saveScores(CoachCleaningProvider provider) {
+    final currentCoachIndex = _tabController.index;
+    // Check if the form key exists for the current index to prevent crashes
+    if (_formKeys.length <= currentCoachIndex ||
+        _formKeys[currentCoachIndex].currentState == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please ensure all required header fields and all parameters are scored.',
+            'Error: Form not ready for validation. Please restart the app.',
           ),
         ),
       );
       return;
     }
 
-    try {
-      final jsonData = provider.coachInspectionData.toJson();
-      final url = Uri.parse(
-        'https://httpbin.org/post',
-      ); // Use httpbin.org for testing
-      // final url = Uri.parse('https://webhook.site/YOUR_UNIQUE_WEBHOOK_URL'); // Replace with your webhook.site URL
+    final currentFormKey = _formKeys[currentCoachIndex];
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(jsonData),
-      );
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Coach Form submitted successfully!')),
-        );
-        print('Coach Submission Successful: ${response.body}');
-        provider.resetCoachForm();
-        _agreementNoAndDateController.clear();
-        _nameOfContractorController.clear();
-        _nameOfSupervisorController.clear();
-        _trainNoController.clear();
-        _noOfCoachesAttendedController.clear();
-        setState(() {
-          _selectedDateOfInspectionText = "Select Date of Inspection";
-          _selectedTimeWorkStartedText = "Select Time";
-          _selectedTimeWorkCompletedText = "Select Time";
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Coach Form submission failed: ${response.statusCode}',
-            ),
-          ),
-        );
-        print('Coach Submission Failed: ${response.body}');
-      }
-    } catch (e) {
+    if (!currentFormKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An error occurred during Coach Form submission: $e'),
+        const SnackBar(
+          content: Text('Please correct invalid scores before saving.'),
         ),
       );
-      print('Error during Coach submission: $e');
+      return;
+    }
+
+    final currentCoachData =
+        provider.coachCleaningInspectionData.coachColumns[currentCoachIndex];
+
+    currentCoachData.remarks = _remarkControllers[currentCoachIndex].text
+        .trim();
+
+    // Ensure we iterate over the actual scoring parameters from the inspection data
+    provider.coachCleaningInspectionData.scoringParameters.forEach((section) {
+      final controller = _scoreControllers[currentCoachIndex]![section];
+      final enteredValue = int.tryParse(controller?.text ?? '');
+      currentCoachData.scores[section] = enteredValue;
+    });
+
+    // Recalculate total score for the current coach before updating
+    currentCoachData.totalScoreObtained = currentCoachData
+        .calculateTotalScoreObtained();
+
+    provider.updateCoachColumnData(currentCoachIndex, currentCoachData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Scores and remarks saved for current coach.'),
+      ),
+    );
+  }
+
+  String? _validateScore(String? value, int maxScore) {
+    if (value == null || value.isEmpty) {
+      return 'Required';
+    }
+    final score = int.tryParse(value);
+    if (score == null || score < 0 || score > maxScore) {
+      return 'Enter 0-$maxScore';
+    }
+    return null;
+  }
+
+  void _generatePdf() async {
+    final provider = Provider.of<CoachCleaningProvider>(context, listen: false);
+    if (provider.coachCleaningInspectionData.coachColumns.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No coach data to generate PDF.')),
+      );
+      return;
+    }
+
+    final currentCoachData =
+        provider.coachCleaningInspectionData.coachColumns[_tabController.index];
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Generating PDF...')));
+
+    try {
+      final pdfBytes = await _pdfService.generateCoachCleaningPdf(
+        inspectionData: provider.coachCleaningInspectionData,
+        coachColumnData: currentCoachData,
+      );
+
+      await Printing.sharePdf(
+        bytes: pdfBytes,
+        filename: 'coach_score_card_${currentCoachData.coachNo}.pdf',
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PDF generated and opened successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to generate PDF: $e')));
+      print('PDF generation error: $e'); // For debugging
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<InspectionProvider>(
-      builder: (context, inspectionProvider, child) {
-        // Update display text for dates and times based on provider data
-        // These calls now correctly pass the `context` from the builder
-        _updateDateDisplay(
-          inspectionProvider.coachInspectionData.dateOfInspection,
-          (text) => _selectedDateOfInspectionText = text,
-        );
-        _updateTimeDisplay(
-          inspectionProvider.coachInspectionData.timeWorkStarted,
-          (text) => _selectedTimeWorkStartedText = text,
-        );
-        _updateTimeDisplay(
-          inspectionProvider.coachInspectionData.timeWorkCompleted,
-          (text) => _selectedTimeWorkCompletedText = text,
-        );
+    return Consumer<CoachCleaningProvider>(
+      builder: (context, coachCleaningProvider, child) {
+        final inspectionData =
+            coachCleaningProvider.coachCleaningInspectionData;
+        final coachColumns = inspectionData.coachColumns;
+        final scoringSections = inspectionData.scoringParameters;
+
+        if (coachColumns.isEmpty) {
+          return Scaffold(
+            appBar: const GradientAppBar(title: 'Coach Score Card'),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  'No coaches found for scoring. Please go back to the previous screen and enter the number of coaches.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Re-initialize tab controller and text controllers if the number of coaches changes
+        // This handles scenarios where coaches are added/removed from CoachHeaderFormScreen
+        if (_tabController.length != coachColumns.length) {
+          _tabController.dispose();
+          _tabController = TabController(
+            length: coachColumns.length,
+            vsync: this,
+          );
+          _initializeControllers(coachColumns);
+        }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Coach Cleaning Score Card')),
-          body: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- Header Fields ---
-                  TextFormField(
-                    controller: _agreementNoAndDateController,
-                    decoration: const InputDecoration(
-                      labelText: 'Agreement No. & Date',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateCoachAgreementNoAndDate,
-                  ),
-                  const SizedBox(height: 16.0),
-                  GestureDetector(
-                    onTap: () => _selectDate(context, inspectionProvider),
-                    child: AbsorbPointer(
-                      child: TextFormField(
-                        controller: TextEditingController(
-                          text: _selectedDateOfInspectionText,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Date of Inspection',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        validator: (value) =>
-                            inspectionProvider
-                                    .coachInspectionData
-                                    .dateOfInspection ==
-                                null
-                            ? 'Date is required'
-                            : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _nameOfContractorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name of Contractor',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateCoachNameOfContractor,
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Contractor Name is required'
-                        : null,
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _nameOfSupervisorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name of Supervisor',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateCoachNameOfSupervisor,
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Supervisor Name is required'
-                        : null,
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _trainNoController,
-                    decoration: const InputDecoration(
-                      labelText: 'Train No.',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: inspectionProvider.updateCoachTrainNo,
-                  ),
-                  const SizedBox(height: 16.0),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () =>
-                              _selectTime(context, inspectionProvider, true),
-                          child: AbsorbPointer(
-                            child: TextFormField(
-                              controller: TextEditingController(
-                                text: _selectedTimeWorkStartedText,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Time Work Started',
-                                border: OutlineInputBorder(),
-                                suffixIcon: Icon(Icons.access_time),
+          backgroundColor: Colors.white,
+          appBar: const GradientAppBar(title: 'Coach Score Card'),
+          body: Column(
+            children: [
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: GlobalVariables.appBarGradient,
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white.withOpacity(0.7),
+                  indicatorColor: Colors.white,
+                  tabs: coachColumns.map((coach) {
+                    return Tab(text: coach.coachNo);
+                  }).toList(),
+                ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: coachColumns.map((coachData) {
+                    final coachIndex = coachColumns.indexOf(coachData);
+                    // Use a Form widget with a unique GlobalKey for each tab
+                    return Form(
+                      key: _formKeys[coachIndex],
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Scores for ${coachData.coachNo}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: GlobalVariables.reddishPurpleColor,
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16.0),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () =>
-                              _selectTime(context, inspectionProvider, false),
-                          child: AbsorbPointer(
-                            child: TextFormField(
-                              controller: TextEditingController(
-                                text: _selectedTimeWorkCompletedText,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Time Work Completed',
-                                border: OutlineInputBorder(),
-                                suffixIcon: Icon(Icons.access_time),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _noOfCoachesAttendedController,
-                    decoration: const InputDecoration(
-                      labelText: 'No. of Coaches attended',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      inspectionProvider.updateCoachNoOfCoachesAttended(
-                        int.tryParse(value) ?? 0,
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 24.0),
-
-                  // --- Parameters for Coach Cleaning (no sections, just a list) ---
-                  Text(
-                    'Platform Return Activities',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Divider(),
-                  ...inspectionProvider.coachInspectionData.parameters.map((
-                    parameter,
-                  ) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            parameter.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8.0),
-                          DropdownButtonFormField<int>(
-                            value: parameter.score,
-                            decoration: const InputDecoration(
-                              labelText: 'Score (0-3)',
-                              border: OutlineInputBorder(),
-                            ),
-                            items:
-                                List.generate(
-                                      4,
-                                      (index) => index,
-                                    ) // Scores 0, 1, 2, 3
-                                    .map(
-                                      (score) => DropdownMenuItem<int>(
-                                        value: score,
-                                        child: Text('$score'),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged: (int? newValue) {
-                              inspectionProvider.updateCoachParameterScore(
-                                parameter.name,
-                                newValue,
+                            verticalSpace(height: 20),
+                            // Map scoring sections to build input fields
+                            ...scoringSections.map((section) {
+                              final maxScore = section
+                                  .maxMarks!; // Max marks should be non-null for scoring sections
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16.0),
+                                child: _buildScoreInputField(
+                                  section: section,
+                                  maxScore: maxScore,
+                                  controller:
+                                      _scoreControllers[coachIndex]![section]!,
+                                  onChanged: (value) {
+                                    // onChanged is optional for direct controller updates.
+                                    // Validation is triggered on save.
+                                  },
+                                  validator: (value) =>
+                                      _validateScore(value, maxScore),
+                                ),
                               );
-                            },
-                            validator: (value) {
-                              if (value == null) {
-                                return 'Score is required';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 8.0),
-                          TextFormField(
-                            initialValue: parameter.remarks,
-                            decoration: const InputDecoration(
-                              labelText: 'Remarks (Optional)',
-                              border: OutlineInputBorder(),
+                            }).toList(),
+                            const SizedBox(height: 16),
+                            _buildRemarksInputField(
+                              controller: _remarkControllers[coachIndex],
+                              onChanged: (value) {
+                                // onChanged is optional for direct controller updates.
+                              },
                             ),
-                            maxLines: 2,
-                            onChanged: (value) {
-                              inspectionProvider.updateCoachParameterRemarks(
-                                parameter.name,
-                                value,
-                              );
-                            },
-                          ),
-                        ],
+                            const SizedBox(height: 30),
+                            GradientActionButton(
+                              label: 'SAVE SCORES',
+                              onPressed: () {
+                                _saveScores(coachCleaningProvider);
+                              },
+                            ),
+                            verticalSpace(height: 10),
+                            GradientActionButton(
+                              label: 'GENERATE PDF FOR THIS COACH',
+                              onPressed: _generatePdf,
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }).toList(),
-
-                  const SizedBox(height: 20.0),
-
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: _submitForm,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 15,
-                        ),
-                        textStyle: const TextStyle(fontSize: 18),
-                      ),
-                      child: const Text('Submit Coach Inspection'),
-                    ),
-                  ),
-                  const SizedBox(height: 20.0), // Space after button
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildScoreInputField({
+    required Section section,
+    required int maxScore,
+    required TextEditingController controller,
+    required Function(String) onChanged,
+    String? Function(String?)? validator,
+  }) {
+    // Use itemCode and displayName from the SectionExtension
+    String labelText =
+        '${section.itemCode != null ? '${section.itemCode} - ' : ''}${section.displayName}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$labelText (Max: $maxScore)',
+          style: const TextStyle(
+            color: GlobalVariables.reddishPurpleColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        verticalSpace(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(
+            hintText: '  Enter score (0-$maxScore)',
+            hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
+            prefixIcon: Container(
+              margin: const EdgeInsets.only(top: 0, left: 6),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: GlobalVariables.appBarGradient,
+              ),
+              child: const Icon(Icons.score, color: Colors.white, size: 18),
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: const BorderSide(color: Colors.grey, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: const BorderSide(
+                color: GlobalVariables.purpleColor,
+                width: 2,
+              ),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 0,
+            ),
+          ),
+          style: const TextStyle(fontSize: 16),
+          onChanged: onChanged,
+          validator:
+              validator, // The validator is correctly passed to TextFormField
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRemarksInputField({
+    required TextEditingController controller,
+    required Function(String) onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Remarks',
+          style: TextStyle(
+            color: GlobalVariables.reddishPurpleColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        verticalSpace(height: 6),
+        TextFormField(
+          controller: controller,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: '  Enter any remarks for this coach',
+            hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.grey, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: GlobalVariables.purpleColor,
+                width: 2,
+              ),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 12,
+            ),
+          ),
+          style: const TextStyle(fontSize: 16),
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }

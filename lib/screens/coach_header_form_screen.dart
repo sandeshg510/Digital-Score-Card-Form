@@ -1,73 +1,75 @@
-// lib/screens/station_header_form_screen.dart
-import 'package:digital_score_card_form_for_inspection/constants/global_variables.dart';
-import 'package:digital_score_card_form_for_inspection/core/common/widgets/basics.dart';
-import 'package:digital_score_card_form_for_inspection/core/common/widgets/gradient_button.dart';
-import 'package:digital_score_card_form_for_inspection/screens/station_score_card_screen.dart';
+// lib/screens/coach_header_form_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../constants/global_variables.dart';
+import '../core/common/widgets/basics.dart'; // Assuming this file provides CommonWidgets and verticalSpace
 import '../core/common/widgets/gradient_app_bar.dart';
-import '../providers/inspection_provider.dart';
+import '../core/common/widgets/gradient_button.dart';
+import '../providers/coach_cleaning_provider.dart'; // Changed from InspectionProvider
+import 'coach_score_card_screen.dart'; // This screen will be created next
 
-class StationHeaderFormScreen extends StatefulWidget {
-  const StationHeaderFormScreen({super.key});
+class CoachHeaderFormScreen extends StatefulWidget {
+  const CoachHeaderFormScreen({super.key});
 
   @override
-  State<StationHeaderFormScreen> createState() =>
-      _StationHeaderFormScreenState();
+  State<CoachHeaderFormScreen> createState() => _CoachHeaderFormScreenState();
 }
 
-class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
+class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
     with CommonWidgets {
+  // Assuming CommonWidgets from basics.dart
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _woNoController = TextEditingController();
-  final TextEditingController _nameOfWorkController = TextEditingController();
+  final TextEditingController _agreementNoController = TextEditingController();
   final TextEditingController _nameOfContractorController =
       TextEditingController();
   final TextEditingController _nameOfSupervisorController =
       TextEditingController();
-  final TextEditingController _designationController = TextEditingController();
   final TextEditingController _trainNoController = TextEditingController();
-  final TextEditingController _totalNoOfCoachesController =
+  final TextEditingController _coachNoInRakeController =
       TextEditingController();
+  final TextEditingController _totalCoachesForScoringController =
+      TextEditingController(); // To define number of coach tabs/columns
 
-  String _selectedDateText = "Select Date";
+  String _selectedAgreementDateText = "Select Date";
   String _selectedInspectionDateText = "Select Date of Inspection";
-  String _selectedArrivalTimeText = "Select Time";
-  String _selectedDepTimeText = "Select Time";
+  String _selectedTimeWorkStartedText = "Select Time";
+  String _selectedTimeWorkCompletedText = "Select Time";
 
   @override
   void initState() {
     super.initState();
-    final provider = Provider.of<InspectionProvider>(context, listen: false);
-    _woNoController.text = provider.stationInspectionData.woNo ?? '';
-    _nameOfWorkController.text =
-        provider.stationInspectionData.nameOfWork ?? '';
-    _nameOfContractorController.text =
-        provider.stationInspectionData.nameOfContractor ?? '';
-    _nameOfSupervisorController.text =
-        provider.stationInspectionData.nameOfSupervisor ?? '';
-    _designationController.text =
-        provider.stationInspectionData.designation ?? '';
-    _trainNoController.text = provider.stationInspectionData.trainNo ?? '';
-    _totalNoOfCoachesController.text =
-        provider.stationInspectionData.totalNoOfCoaches?.toString() ?? '';
+    // Changed provider type here
+    final provider = Provider.of<CoachCleaningProvider>(context, listen: false);
+    final data = provider.coachCleaningInspectionData;
 
+    // Initialize controllers with existing data
+    _agreementNoController.text = data.agreementNo ?? '';
+    _nameOfContractorController.text = data.nameOfContractor ?? '';
+    _nameOfSupervisorController.text = data.nameOfSupervisor ?? '';
+    _trainNoController.text = data.trainNo ?? '';
+    _coachNoInRakeController.text = data.coachNoInRake?.toString() ?? '';
+    _totalCoachesForScoringController.text = data.coachColumns.isNotEmpty
+        ? data.coachColumns.length.toString()
+        : '';
+
+    // Update date/time display strings
     _updateDateDisplay(
-      provider.stationInspectionData.date,
-      (text) => _selectedDateText = text,
+      data.agreementDate,
+      (text) => _selectedAgreementDateText = text,
     );
     _updateDateDisplay(
-      provider.stationInspectionData.dateOfInspection,
+      data.dateOfInspection,
       (text) => _selectedInspectionDateText = text,
     );
     _updateTimeDisplay(
-      provider.stationInspectionData.arrivalTime,
-      (text) => _selectedArrivalTimeText = text,
+      data.timeWorkStarted,
+      (text) => _selectedTimeWorkStartedText = text,
     );
     _updateTimeDisplay(
-      provider.stationInspectionData.depTime,
-      (text) => _selectedDepTimeText = text,
+      data.timeWorkCompleted,
+      (text) => _selectedTimeWorkCompletedText = text,
     );
   }
 
@@ -85,26 +87,27 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
 
   @override
   void dispose() {
-    _woNoController.dispose();
-    _nameOfWorkController.dispose();
+    _agreementNoController.dispose();
     _nameOfContractorController.dispose();
     _nameOfSupervisorController.dispose();
-    _designationController.dispose();
     _trainNoController.dispose();
-    _totalNoOfCoachesController.dispose();
+    _coachNoInRakeController.dispose();
+    _totalCoachesForScoringController.dispose();
     super.dispose();
   }
 
   Future<void> _selectDate(
     BuildContext context,
-    InspectionProvider provider,
-    bool isInspectionDate,
+    CoachCleaningProvider provider, // Changed provider type
+    bool
+    isAgreementDate, // True for Agreement Date, false for Date of Inspection
   ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isInspectionDate
-          ? provider.stationInspectionData.dateOfInspection ?? DateTime.now()
-          : provider.stationInspectionData.date ?? DateTime.now(),
+      initialDate: isAgreementDate
+          ? provider.coachCleaningInspectionData.agreementDate ?? DateTime.now()
+          : provider.coachCleaningInspectionData.dateOfInspection ??
+                DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
       builder: (BuildContext context, Widget? child) {
@@ -126,19 +129,20 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
       },
     );
     if (picked != null) {
-      if (isInspectionDate) {
-        if (picked != provider.stationInspectionData.dateOfInspection) {
-          provider.updateStationDateOfInspection(picked);
+      if (isAgreementDate) {
+        if (picked != provider.coachCleaningInspectionData.agreementDate) {
+          provider.updateCoachCleaningAgreementDate(picked);
           setState(() {
-            _selectedInspectionDateText =
+            _selectedAgreementDateText =
                 "${picked.day}/${picked.month}/${picked.year}";
           });
         }
       } else {
-        if (picked != provider.stationInspectionData.date) {
-          provider.updateStationDate(picked);
+        if (picked != provider.coachCleaningInspectionData.dateOfInspection) {
+          provider.updateCoachCleaningDateOfInspection(picked);
           setState(() {
-            _selectedDateText = "${picked.day}/${picked.month}/${picked.year}";
+            _selectedInspectionDateText =
+                "${picked.day}/${picked.month}/${picked.year}";
           });
         }
       }
@@ -147,27 +151,28 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
 
   Future<void> _selectTime(
     BuildContext context,
-    InspectionProvider provider,
-    bool isArrivalTime,
+    CoachCleaningProvider provider, // Changed provider type
+    bool
+    isWorkStartedTime, // True for Time Work Started, false for Time Work Completed
   ) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: isArrivalTime
-          ? provider.stationInspectionData.arrivalTime ?? TimeOfDay.now()
-          : provider.stationInspectionData.depTime ?? TimeOfDay.now(),
+      initialTime: isWorkStartedTime
+          ? provider.coachCleaningInspectionData.timeWorkStarted ??
+                TimeOfDay.now()
+          : provider.coachCleaningInspectionData.timeWorkCompleted ??
+                TimeOfDay.now(),
       builder: (BuildContext context, Widget? child) {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: ColorScheme.light(
-              primary: GlobalVariables
-                  .reddishPurpleColor, // Picker header background
-              onPrimary: Colors.white, // Picker header text color
-              onSurface: Colors.black, // Picker time text color
+              primary: GlobalVariables.reddishPurpleColor,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor:
-                    GlobalVariables.purpleColor, // OK/Cancel button color
+                foregroundColor: GlobalVariables.purpleColor,
               ),
             ),
           ),
@@ -176,18 +181,18 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
       },
     );
     if (picked != null) {
-      if (isArrivalTime) {
-        if (picked != provider.stationInspectionData.arrivalTime) {
-          provider.updateStationArrivalTime(picked);
+      if (isWorkStartedTime) {
+        if (picked != provider.coachCleaningInspectionData.timeWorkStarted) {
+          provider.updateCoachCleaningTimeWorkStarted(picked);
           setState(() {
-            _selectedArrivalTimeText = picked.format(context);
+            _selectedTimeWorkStartedText = picked.format(context);
           });
         }
       } else {
-        if (picked != provider.stationInspectionData.depTime) {
-          provider.updateStationDepTime(picked);
+        if (picked != provider.coachCleaningInspectionData.timeWorkCompleted) {
+          provider.updateCoachCleaningTimeWorkCompleted(picked);
           setState(() {
-            _selectedDepTimeText = picked.format(context);
+            _selectedTimeWorkCompletedText = picked.format(context);
           });
         }
       }
@@ -195,20 +200,23 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
   }
 
   void _navigateToCoaches() {
-    final provider = Provider.of<InspectionProvider>(context, listen: false);
+    // Changed provider type
+    final provider = Provider.of<CoachCleaningProvider>(context, listen: false);
     if (_formKey.currentState!.validate()) {
-      if (provider.stationInspectionData.totalNoOfCoaches == null ||
-          provider.stationInspectionData.totalNoOfCoaches! <= 0) {
+      // Ensure that coach columns have been generated based on user input
+      if (provider.coachCleaningInspectionData.coachColumns.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please enter a valid number of coaches (>0)'),
+            content: Text(
+              'Please enter a valid number of coaches to score (>0) to generate coach columns.',
+            ),
           ),
         );
         return;
       }
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const StationScoreCardScreen()),
+        MaterialPageRoute(builder: (context) => const CoachScoreCardScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -221,28 +229,43 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<InspectionProvider>(
-      builder: (context, inspectionProvider, child) {
+    // Changed provider type
+    return Consumer<CoachCleaningProvider>(
+      builder: (context, coachCleaningProvider, child) {
+        final data = coachCleaningProvider.coachCleaningInspectionData;
+
+        // Ensure display strings are updated on rebuilds from provider changes
         _updateDateDisplay(
-          inspectionProvider.stationInspectionData.date,
-          (text) => _selectedDateText = text,
+          data.agreementDate,
+          (text) => _selectedAgreementDateText = text,
         );
         _updateDateDisplay(
-          inspectionProvider.stationInspectionData.dateOfInspection,
+          data.dateOfInspection,
           (text) => _selectedInspectionDateText = text,
         );
         _updateTimeDisplay(
-          inspectionProvider.stationInspectionData.arrivalTime,
-          (text) => _selectedArrivalTimeText = text,
+          data.timeWorkStarted,
+          (text) => _selectedTimeWorkStartedText = text,
         );
         _updateTimeDisplay(
-          inspectionProvider.stationInspectionData.depTime,
-          (text) => _selectedDepTimeText = text,
+          data.timeWorkCompleted,
+          (text) => _selectedTimeWorkCompletedText = text,
         );
+        // This is important: update the text controller for total coaches if coachColumns changes externally
+        _totalCoachesForScoringController.text = data.coachColumns.isNotEmpty
+            ? data.coachColumns.length.toString()
+            : _totalCoachesForScoringController.text;
+
+        // Also update trainNo, coachNoInRake, etc., in case they are updated by external logic
+        _agreementNoController.text = data.agreementNo ?? '';
+        _nameOfContractorController.text = data.nameOfContractor ?? '';
+        _nameOfSupervisorController.text = data.nameOfSupervisor ?? '';
+        _trainNoController.text = data.trainNo ?? '';
+        _coachNoInRakeController.text = data.coachNoInRake?.toString() ?? '';
 
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: GradientAppBar(title: 'Station Inspection Details'),
+          appBar: GradientAppBar(title: 'Coach Cleaning Inspection Details'),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Form(
@@ -252,70 +275,50 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
                 children: [
                   verticalSpace(height: 20),
                   _buildTextField(
-                    controller: _woNoController,
-                    labelText: 'W.O. No.',
-                    icon: Icons.description,
-                    onChanged: inspectionProvider.updateStationWoNo,
+                    controller: _agreementNoController,
+                    labelText: 'Agreement No.',
+                    icon: Icons.article,
+                    onChanged: coachCleaningProvider
+                        .updateCoachCleaningAgreementNo, // Changed provider variable name
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Agreement No. is required'
+                        : null,
+                    isMandatory: true,
                   ),
                   verticalSpace(height: 25),
                   _buildDateSelectionField(
                     context: context,
-                    onTap: () =>
-                        _selectDate(context, inspectionProvider, false),
-                    selectedText: _selectedDateText,
-                    labelText: 'Date',
+                    onTap: () => _selectDate(
+                      context,
+                      coachCleaningProvider, // Changed provider variable name
+                      true,
+                    ), // isAgreementDate = true
+                    selectedText: _selectedAgreementDateText,
+                    labelText: 'Agreement Date',
                     icon: Icons.calendar_month,
                     validator: (value) =>
-                        inspectionProvider.stationInspectionData.date == null
-                        ? 'Date is required'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    controller: _nameOfWorkController,
-                    labelText: 'Name of Work',
-                    icon: Icons.work,
-                    onChanged: inspectionProvider.updateStationNameOfWork,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    controller: _nameOfContractorController,
-                    labelText: 'Name of Contractor*',
-                    icon: Icons.business,
-                    onChanged: inspectionProvider.updateStationNameOfContractor,
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Contractor Name is required'
+                        coachCleaningProvider
+                                .coachCleaningInspectionData
+                                .agreementDate ==
+                            null
+                        ? 'Agreement Date is required'
                         : null,
                     isMandatory: true,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    controller: _nameOfSupervisorController,
-                    labelText: 'Name of Supervisor*',
-                    icon: Icons.supervisor_account,
-                    onChanged: inspectionProvider.updateStationNameOfSupervisor,
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Supervisor Name is required'
-                        : null,
-                    isMandatory: true,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    controller: _designationController,
-                    labelText: 'Designation',
-                    icon: Icons.badge,
-                    onChanged: inspectionProvider.updateStationDesignation,
                   ),
                   const SizedBox(height: 16),
                   _buildDateSelectionField(
                     context: context,
-                    onTap: () => _selectDate(context, inspectionProvider, true),
+                    onTap: () => _selectDate(
+                      context,
+                      coachCleaningProvider, // Changed provider variable name
+                      false,
+                    ), // isAgreementDate = false (for Inspection Date)
                     selectedText: _selectedInspectionDateText,
                     labelText: 'Date of Inspection*',
                     icon: Icons.calendar_month,
                     validator: (value) =>
-                        inspectionProvider
-                                .stationInspectionData
+                        coachCleaningProvider
+                                .coachCleaningInspectionData
                                 .dateOfInspection ==
                             null
                         ? 'Inspection Date is required'
@@ -324,10 +327,35 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
+                    controller: _nameOfSupervisorController,
+                    labelText: 'Name of Supervisor*',
+                    icon: Icons.supervisor_account,
+                    onChanged: coachCleaningProvider
+                        .updateCoachCleaningNameOfSupervisor, // Changed provider variable name
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Supervisor Name is required'
+                        : null,
+                    isMandatory: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _nameOfContractorController,
+                    labelText: 'Name of Contractor',
+                    icon: Icons.business,
+                    onChanged: coachCleaningProvider
+                        .updateCoachCleaningNameOfContractor, // Changed provider variable name
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
                     controller: _trainNoController,
                     labelText: 'Train No.',
                     icon: Icons.train,
-                    onChanged: inspectionProvider.updateStationTrainNo,
+                    onChanged: coachCleaningProvider
+                        .updateCoachCleaningTrainNo, // Changed provider variable name
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Train No. is required'
+                        : null,
+                    isMandatory: true,
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -335,10 +363,13 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
                       Expanded(
                         child: _buildTimeSelectionField(
                           context: context,
-                          onTap: () =>
-                              _selectTime(context, inspectionProvider, true),
-                          selectedText: _selectedArrivalTimeText,
-                          labelText: 'Arrival Time',
+                          onTap: () => _selectTime(
+                            context,
+                            coachCleaningProvider, // Changed provider variable name
+                            true,
+                          ), // isWorkStartedTime = true
+                          selectedText: _selectedTimeWorkStartedText,
+                          labelText: 'Time Work Started',
                           icon: Icons.access_time,
                         ),
                       ),
@@ -346,10 +377,13 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
                       Expanded(
                         child: _buildTimeSelectionField(
                           context: context,
-                          onTap: () =>
-                              _selectTime(context, inspectionProvider, false),
-                          selectedText: _selectedDepTimeText,
-                          labelText: 'Dep. Time',
+                          onTap: () => _selectTime(
+                            context,
+                            coachCleaningProvider, // Changed provider variable name
+                            false,
+                          ), // isWorkStartedTime = false (for Work Completed)
+                          selectedText: _selectedTimeWorkCompletedText,
+                          labelText: 'Time Work Completed',
                           icon: Icons.access_time,
                         ),
                       ),
@@ -357,22 +391,57 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
-                    controller: _totalNoOfCoachesController,
-                    labelText: 'Total Coaches in Train*',
-                    icon: Icons.directions_railway,
+                    controller: _coachNoInRakeController,
+                    labelText:
+                        'Coach No. in the Rake', // This is for a single coach number
+                    icon: Icons.confirmation_number,
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
-                      inspectionProvider.updateStationTotalNoOfCoaches(
+                      coachCleaningProvider.updateCoachCleaningCoachNoInRake(
+                        // Changed provider variable name
                         int.tryParse(value),
                       );
                     },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Total coaches is required';
+                        return 'Coach No. in Rake is required'; // Specific error message
                       }
                       if (int.tryParse(value) == null ||
                           int.parse(value) <= 0) {
                         return 'Please enter a valid number (>0)';
+                      }
+                      return null;
+                    },
+                    isMandatory: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _totalCoachesForScoringController,
+                    labelText:
+                        'Number of Coaches to Score*', // User input for generating tabs
+                    icon: Icons.numbers,
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      int? count = int.tryParse(value);
+                      if (count != null && count > 0) {
+                        coachCleaningProvider.generateCoachCleaningCoachColumns(
+                          // Changed provider variable name
+                          count,
+                        );
+                      } else {
+                        coachCleaningProvider.generateCoachCleaningCoachColumns(
+                          // Changed provider variable name
+                          0,
+                        ); // Clear columns if invalid
+                      }
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Required';
+                      }
+                      if (int.tryParse(value) == null ||
+                          int.parse(value) <= 0) {
+                        return 'Enter >0 coaches';
                       }
                       return null;
                     },
@@ -389,6 +458,8 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
     );
   }
 
+  // --- Helper Widgets (Copied from StationHeaderFormScreen and adapted if necessary) ---
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String labelText,
@@ -404,7 +475,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
         Text(
           labelText,
           style: const TextStyle(
-            color: GlobalVariables.reddishPurpleColor, // Purple label
+            color: GlobalVariables.reddishPurpleColor,
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -425,36 +496,29 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
               child: Icon(icon, color: Colors.white, size: 18),
             ),
             filled: true,
-            fillColor: Colors.white, // Light background
+            fillColor: Colors.white,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(
-                color: Colors.grey, // Light gray border
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Colors.grey, width: 1),
             ),
-
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: const BorderSide(
-                color: GlobalVariables.purpleColor, // Purple when focused
+                color: GlobalVariables.purpleColor,
                 width: 2,
               ),
             ),
-
-            // Redundant but safe fallback for default
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
             ),
-
             contentPadding: const EdgeInsets.symmetric(
               vertical: 16,
               horizontal: 0,
             ),
             suffixIcon: isMandatory
-                ? Padding(
-                    padding: const EdgeInsets.only(left: 8.0, top: 12),
+                ? const Padding(
+                    padding: EdgeInsets.only(left: 8.0, top: 12),
                     child: Text(
                       '*',
                       style: TextStyle(color: Colors.red, fontSize: 20),
@@ -487,7 +551,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
           Text(
             labelText,
             style: const TextStyle(
-              color: GlobalVariables.reddishPurpleColor, // Purple label
+              color: GlobalVariables.reddishPurpleColor,
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -497,25 +561,20 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
             child: TextFormField(
               controller: TextEditingController(text: selectedText),
               decoration: InputDecoration(
-                // labelText: labelText,
                 labelStyle: TextStyle(color: Colors.grey[700]),
                 prefixIcon: Icon(
                   icon,
                   color: GlobalVariables.reddishPurpleColor,
                 ),
                 filled: true,
-                fillColor: Colors.white, // Light background
-
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(
-                    color: Colors.grey, // Light gray border
-                    width: 1,
-                  ),
+                  borderSide: const BorderSide(color: Colors.grey, width: 1),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -529,8 +588,8 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
                   horizontal: 20,
                 ),
                 suffixIcon: isMandatory
-                    ? Padding(
-                        padding: const EdgeInsets.only(left: 8.0, top: 12),
+                    ? const Padding(
+                        padding: EdgeInsets.only(left: 8.0, top: 12),
                         child: Text(
                           '*',
                           style: TextStyle(color: Colors.red, fontSize: 20),
@@ -562,7 +621,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
           Text(
             labelText,
             style: const TextStyle(
-              color: GlobalVariables.reddishPurpleColor, // Purple label
+              color: GlobalVariables.reddishPurpleColor,
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -578,17 +637,14 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
                   color: GlobalVariables.reddishPurpleColor,
                 ),
                 filled: true,
-                fillColor: Colors.white, // Light background
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(
-                    color: Colors.grey, // Light gray border
-                    width: 1,
-                  ),
+                  borderSide: const BorderSide(color: Colors.grey, width: 1),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),

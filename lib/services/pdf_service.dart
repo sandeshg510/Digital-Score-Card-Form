@@ -30,7 +30,7 @@ class PdfService {
   ) async {
     final pdf = pw.Document();
 
-    final font = await PdfGoogleFonts.poppinsRegular();
+    final font = await PdfGoogleFonts.notoSerifRegular();
 
     // Helper to format dates and times
     String formatDate(DateTime? date) {

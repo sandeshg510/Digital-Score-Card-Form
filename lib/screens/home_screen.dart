@@ -1,63 +1,70 @@
 // lib/screens/home_screen.dart
 
+import 'package:digital_score_card_form_for_inspection/core/common/widgets/basics.dart';
+import 'package:digital_score_card_form_for_inspection/core/common/widgets/gradient_button.dart';
+import 'package:digital_score_card_form_for_inspection/screens/coach_header_form_screen.dart';
 import 'package:digital_score_card_form_for_inspection/screens/station_header_form_screen.dart';
+import 'package:digital_score_card_form_for_inspection/utils/assets_paths.dart';
 import 'package:flutter/material.dart';
 
-class HomeScreen extends StatelessWidget {
+import '../core/common/widgets/gradient_app_bar.dart';
+
+class HomeScreen extends StatelessWidget with CommonWidgets {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    double height = MediaQuery.of(context).size.height;
+    double width = MediaQuery.of(context).size.width;
     return Scaffold(
-      appBar: AppBar(title: const Text('Digital Score Card App')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const StationHeaderFormScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 15,
-                ),
-                textStyle: const TextStyle(fontSize: 20),
+      appBar: GradientAppBar(title: 'Digital Score Card App'),
+      body: Padding(
+        padding: EdgeInsets.symmetric(horizontal: width * 0.1),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              verticalSpace(height: height * 0.1),
+
+              Image.asset(
+                height: height * 0.3,
+                ImagePaths.instance.brandNameLogoPath,
               ),
-              child: const Text('Clean Train Station Inspection'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate to Coach Inspection Screen
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(
-                //     builder: (context) => const CoachInspectionScreen(),
-                //   ),
-                // );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Coach Inspection not yet implemented.'),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 15,
-                ),
-                textStyle: const TextStyle(fontSize: 20),
+              verticalSpace(height: height * 0.1),
+              GradientActionButton(
+                height: 55,
+                label: 'Clean Train Station Inspection',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StationHeaderFormScreen(),
+                    ),
+                  );
+                },
               ),
-              child: const Text('Coach Inspection'),
-            ),
-          ],
+              verticalSpace(height: 25),
+              GradientActionButton(
+                height: 55,
+
+                label: 'Coach Inspection',
+                onPressed: () {
+                  // TODO: Navigate to Coach Inspection Screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CoachHeaderFormScreen(),
+                    ),
+                  );
+                  // ScaffoldMessenger.of(context).showSnackBar(
+                  //   const SnackBar(
+                  //     content: Text('Coach Inspection not yet implemented.'),
+                  //   ),
+                  // );
+                },
+              ),
+              verticalSpace(height: 10),
+            ],
+          ),
         ),
       ),
     );

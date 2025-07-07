@@ -1,15 +1,14 @@
-// lib/screens/station_score_card_screen.dart
-
 import 'dart:convert';
 
-import 'package:flutter/material.dart'
-    as material; // Alias flutter/material as material
+import 'package:flutter/material.dart' as material;
 import 'package:flutter/material.dart'; // Keep direct import for other Material widgets
 import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart'; // Import Provider directly
 
+import '../constants/global_variables.dart'; // Import global_variables
+import '../core/common/widgets/gradient_tab_app_bar.dart';
 import '../providers/inspection_provider.dart';
 import '../services/pdf_service.dart'; // Import printing package
 
@@ -28,7 +27,6 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
   void initState() {
     super.initState();
     final provider = Provider.of<InspectionProvider>(context, listen: false);
-    // Initialize tab controller based on the dynamic number of coaches
     _tabController = TabController(
       length: provider.stationInspectionData.coachColumns.length,
       vsync: this,
@@ -38,19 +36,14 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
   @override
   void didUpdateWidget(covariant StationScoreCardScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // This is important if the number of coaches can change while this screen is active
-    // Although in our current flow, it navigates from a previous screen,
-    // it's good practice for robustness.
     final provider = Provider.of<InspectionProvider>(context, listen: false);
     if (_tabController.length !=
         provider.stationInspectionData.coachColumns.length) {
-      _tabController.dispose(); // Dispose old controller
+      _tabController.dispose();
       _tabController = TabController(
         length: provider.stationInspectionData.coachColumns.length,
         vsync: this,
       );
-      // If the number of coaches changes, we might want to reset the selected tab
-      // or try to keep it within bounds. For now, it will default to the first tab.
     }
   }
 
@@ -61,9 +54,7 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
   }
 
   void _goToNextCoach(InspectionProvider provider, String currentCoachId) {
-    // Fill empty scores for the current coach with 0 before moving to the next
     provider.fillEmptyScoresWithDefaultMark(currentCoachId);
-    // Recalculate attended coaches after filling scores
     provider.calculateNoOfCoachesAttended();
 
     if (_tabController.index < _tabController.length - 1) {
@@ -74,14 +65,11 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
   Future<void> _submitForm() async {
     final provider = Provider.of<InspectionProvider>(context, listen: false);
 
-    // Before final submission, ensure all fields for ALL coaches are explicitly set to 0 if left blank
     for (var coachId in provider.stationInspectionData.coachColumns) {
       provider.fillEmptyScoresWithDefaultMark(coachId);
     }
-    // After filling all scores, ensure the attended count is accurate
     provider.calculateNoOfCoachesAttended();
 
-    // Now validate that all fields are non-null (i.e., they are either manually set or defaulted to 0)
     if (!provider.isStationFormValidForSubmission()) {
       material.ScaffoldMessenger.of(context).showSnackBar(
         const material.SnackBar(
@@ -106,11 +94,7 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
 
       // 3. (Optional) Submit data to backend
       final jsonData = provider.stationInspectionData.toJson();
-      final url = Uri.parse(
-        // Corrected: Used Uri directly, not material.Uri
-        'https://httpbin.org/post',
-      ); // Use httpbin.org for testing
-      // final url = Uri.parse('https://webhook.site/YOUR_UNIQUE_WEBHOOK_URL'); // Replace with your webhook.site URL
+      final url = Uri.parse('https://httpbin.org/post');
 
       final response = await http.post(
         url,
@@ -152,15 +136,10 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
   @override
   Widget build(BuildContext context) {
     return Consumer<InspectionProvider>(
-      // Corrected: Used Consumer directly, not material.Consumer
       builder: (context, inspectionProvider, child) {
         final List<String> coachColumns =
             inspectionProvider.stationInspectionData.coachColumns;
 
-        // Re-initialize TabController if coachColumns length changes (edge case if state changes after init)
-        // This handles cases where totalNoOfCoaches might be updated after initial build.
-        // It's technically covered by didUpdateWidget but doing it here ensures it's always in sync.
-        // We ensure we only dispose and re-create if really needed to avoid unnecessary widget rebuilds.
         if (_tabController.length != coachColumns.length) {
           _tabController.dispose();
           _tabController = TabController(
@@ -172,16 +151,28 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
         return DefaultTabController(
           length: coachColumns.length,
           child: material.Scaffold(
-            appBar: material.AppBar(
-              title: const material.Text('Clean Train Station Score Card'),
-              bottom: TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                tabs: coachColumns
-                    .map((coachId) => material.Tab(text: coachId))
-                    .toList(),
-              ),
+            backgroundColor: Colors.white,
+            appBar: GradientTabAppBar(
+              title: 'Clean Train Station Score Card',
+              tabController: _tabController,
+              tabs: coachColumns
+                  .map(
+                    (coachId) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Tab(
+                        child: material.Text(
+                          coachId,
+                          style: const material.TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
+
             body: material.Column(
               children: [
                 material.Padding(
@@ -193,6 +184,7 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                       style: const material.TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
                     ),
                   ),
@@ -207,78 +199,82 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                           .calculateTotalScoreForCoach(coachId);
 
                       return material.SingleChildScrollView(
-                        padding: const material.EdgeInsets.all(16.0),
+                        padding: const material.EdgeInsets.symmetric(
+                          horizontal: 4.0,
+                          vertical: 10,
+                        ),
                         child: material.Column(
                           crossAxisAlignment: material.CrossAxisAlignment.start,
                           children: [
+                            const material.SizedBox(height: 24.0),
+
                             material.Center(
                               child: material.Text(
                                 'Scoring - $coachId',
                                 style: const material.TextStyle(
                                   fontSize: 20,
                                   fontWeight: material.FontWeight.bold,
-                                  color: material.Colors.blueAccent,
+                                  color: GlobalVariables.purpleColor,
                                 ),
                               ),
                             ),
-                            const material.SizedBox(height: 16.0),
                             ...inspectionProvider.stationInspectionData.sections.map((
                               section,
                             ) {
-                              return material.Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                              return material.Container(
                                 margin: const material.EdgeInsets.symmetric(
                                   vertical: 8.0,
                                 ),
-                                child: material.Padding(
-                                  padding: const material.EdgeInsets.all(12.0),
-                                  child: material.Column(
-                                    crossAxisAlignment:
-                                        material.CrossAxisAlignment.start,
-                                    children: [
-                                      material.Text(
-                                        section.name,
-                                        style: const material.TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: material.FontWeight.bold,
-                                          color: material.Colors.deepPurple,
-                                        ),
+                                padding: const material.EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                ),
+                                child: material.Column(
+                                  crossAxisAlignment:
+                                      material.CrossAxisAlignment.start,
+                                  children: [
+                                    material.Text(
+                                      section.name,
+                                      style: const material.TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: material.FontWeight.bold,
+                                        color: GlobalVariables.purpleColor,
                                       ),
-                                      const material.SizedBox(height: 12),
-                                      ...section.parameters.map((parameter) {
-                                        return material.Padding(
-                                          padding:
-                                              const material.EdgeInsets.only(
-                                                bottom: 12.0,
+                                    ),
+                                    ...section.parameters.map((parameter) {
+                                      return material.Padding(
+                                        padding: const material.EdgeInsets.only(
+                                          top: 20,
+                                          bottom: 12.0,
+                                        ),
+                                        child: material.Column(
+                                          crossAxisAlignment:
+                                              material.CrossAxisAlignment.start,
+                                          children: [
+                                            material.Text(
+                                              parameter.name,
+                                              style: const material.TextStyle(
+                                                fontSize: 16,
+                                                fontWeight:
+                                                    material.FontWeight.w600,
+                                                color: material.Colors.black87,
                                               ),
-                                          child: material.Column(
-                                            crossAxisAlignment: material
-                                                .CrossAxisAlignment
-                                                .start,
-                                            children: [
-                                              material.Text(
-                                                parameter.name,
-                                                style: const material.TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight:
-                                                      material.FontWeight.w600,
+                                            ),
+                                            const material.SizedBox(
+                                              height: 18.0,
+                                            ),
+                                            ...parameter.subParameters.map((
+                                              subParam,
+                                            ) {
+                                              if (!subParam.coachIds.contains(
+                                                coachId,
+                                              )) {
+                                                return const material.SizedBox.shrink();
+                                              }
+                                              return material.Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 14.0,
                                                 ),
-                                              ),
-                                              const material.SizedBox(
-                                                height: 8.0,
-                                              ),
-                                              ...parameter.subParameters.map((
-                                                subParam,
-                                              ) {
-                                                if (!subParam.coachIds.contains(
-                                                  coachId,
-                                                )) {
-                                                  return const material.SizedBox.shrink();
-                                                }
-                                                return material.Row(
+                                                child: material.Row(
                                                   children: [
                                                     material.Expanded(
                                                       flex: 2,
@@ -287,6 +283,9 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                                         style:
                                                             const material.TextStyle(
                                                               fontSize: 14,
+                                                              color: material
+                                                                  .Colors
+                                                                  .black54,
                                                             ),
                                                       ),
                                                     ),
@@ -301,20 +300,63 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                                         decoration: InputDecoration(
                                                           contentPadding:
                                                               const material.EdgeInsets.symmetric(
-                                                                horizontal: 12,
+                                                                horizontal: 18,
                                                                 vertical: 8,
                                                               ),
+                                                          // Reverted to OutlineInputBorder
                                                           border: OutlineInputBorder(
                                                             borderRadius:
-                                                                BorderRadius.circular(
-                                                                  8,
+                                                                material
+                                                                    .BorderRadius.circular(
+                                                                  10,
+                                                                ),
+                                                            borderSide:
+                                                                BorderSide(
+                                                                  color: material
+                                                                      .Colors
+                                                                      .grey
+                                                                      .shade400,
+                                                                  width: 1,
+                                                                ),
+                                                          ),
+                                                          enabledBorder: OutlineInputBorder(
+                                                            borderRadius:
+                                                                material
+                                                                    .BorderRadius.circular(
+                                                                  10,
+                                                                ),
+                                                            borderSide:
+                                                                BorderSide(
+                                                                  color: material
+                                                                      .Colors
+                                                                      .grey
+                                                                      .shade400,
+                                                                  width: 1,
+                                                                ),
+                                                          ),
+                                                          focusedBorder: OutlineInputBorder(
+                                                            borderRadius:
+                                                                material
+                                                                    .BorderRadius.circular(
+                                                                  10,
+                                                                ),
+                                                            borderSide:
+                                                                const BorderSide(
+                                                                  color: GlobalVariables
+                                                                      .purpleColor,
+                                                                  width: 2,
                                                                 ),
                                                           ),
                                                           filled: true,
-                                                          fillColor: material
-                                                              .Colors
-                                                              .grey[100],
+                                                          fillColor:
+                                                              Colors.white,
                                                           labelText: 'Score',
+                                                          labelStyle:
+                                                              const material.TextStyle(
+                                                                color: material
+                                                                    .Colors
+                                                                    .grey,
+                                                              ),
                                                         ),
                                                         items: List.generate(11, (j) => j)
                                                             .map(
@@ -322,10 +364,14 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                                                 score,
                                                               ) => material.DropdownMenuItem<int>(
                                                                 value: score,
-                                                                child:
-                                                                    material.Text(
-                                                                      '$score',
-                                                                    ),
+                                                                child: material.Text(
+                                                                  '$score',
+                                                                  style: const material.TextStyle(
+                                                                    color: material
+                                                                        .Colors
+                                                                        .black87,
+                                                                  ),
+                                                                ),
                                                               ),
                                                             )
                                                             .toList(),
@@ -342,51 +388,82 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                                       ),
                                                     ),
                                                   ],
-                                                );
-                                              }).toList(),
-                                              const material.SizedBox(
-                                                height: 8.0,
-                                              ),
-                                              material.TextFormField(
-                                                initialValue: parameter.remarks,
-                                                decoration: InputDecoration(
-                                                  labelText: 'Remarks',
-                                                  border: OutlineInputBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                                  filled: true,
-                                                  fillColor:
-                                                      material.Colors.grey[100],
                                                 ),
-                                                maxLines: 2,
-                                                onChanged: (value) {
-                                                  inspectionProvider
-                                                      .updateStationParameterRemarks(
-                                                        section.name,
-                                                        parameter.name,
-                                                        value,
-                                                      );
-                                                },
+                                              );
+                                            }),
+                                            const material.SizedBox(
+                                              height: 18.0,
+                                            ),
+                                            material.TextFormField(
+                                              initialValue: parameter.remarks,
+                                              decoration: InputDecoration(
+                                                labelText: 'Remarks',
+                                                labelStyle:
+                                                    const material.TextStyle(
+                                                      color:
+                                                          material.Colors.grey,
+                                                    ),
+                                                // Reverted to OutlineInputBorder
+                                                border: OutlineInputBorder(
+                                                  borderRadius: material
+                                                      .BorderRadius.circular(10),
+                                                  borderSide: BorderSide(
+                                                    color: material
+                                                        .Colors
+                                                        .grey
+                                                        .shade400,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: material
+                                                      .BorderRadius.circular(10),
+                                                  borderSide: BorderSide(
+                                                    color: material
+                                                        .Colors
+                                                        .grey
+                                                        .shade400,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderRadius: material
+                                                      .BorderRadius.circular(10),
+                                                  borderSide: const BorderSide(
+                                                    color: GlobalVariables
+                                                        .purpleColor,
+                                                    width: 2,
+                                                  ),
+                                                ),
+                                                filled: true,
+                                                fillColor: Colors.white,
                                               ),
-                                            ],
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ],
-                                  ),
+                                              maxLines: 2,
+                                              style: const material.TextStyle(
+                                                color: material.Colors.black87,
+                                              ),
+                                              onChanged: (value) {
+                                                inspectionProvider
+                                                    .updateStationParameterRemarks(
+                                                      section.name,
+                                                      parameter.name,
+                                                      value,
+                                                    );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                  ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                             const material.SizedBox(height: 16.0),
                             material.Container(
                               width: double.infinity,
-                              padding: const material.EdgeInsets.all(16.0),
-                              decoration: BoxDecoration(
-                                color: material.Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(8),
+                              padding: const material.EdgeInsets.symmetric(
+                                horizontal: 16.0,
                               ),
                               child: material.Center(
                                 child: material.Text(
@@ -394,47 +471,61 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                   style: const material.TextStyle(
                                     fontSize: 18,
                                     fontWeight: material.FontWeight.bold,
-                                    color: material.Colors.deepOrange,
+                                    color: GlobalVariables.purpleColor,
                                   ),
                                 ),
                               ),
                             ),
                             const material.SizedBox(height: 24),
                             material.Center(
-                              child: material.ElevatedButton.icon(
-                                icon: material.Icon(
-                                  isLastCoach
-                                      ? material.Icons.check
-                                      : material.Icons.arrow_forward,
+                              child: material.Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  gradient: GlobalVariables.appBarGradient,
                                 ),
-                                label: material.Text(
-                                  isLastCoach
-                                      ? 'Submit Inspection'
-                                      : 'Next Coach',
+                                child: material.ElevatedButton.icon(
+                                  icon: material.Icon(
+                                    isLastCoach
+                                        ? material.Icons.check
+                                        : material.Icons.arrow_forward,
+                                    color: Colors.white,
+                                  ),
+
+                                  label: material.Text(
+                                    isLastCoach
+                                        ? 'Submit Inspection'
+                                        : 'Next Coach',
+                                    style: const material.TextStyle(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  style: material.ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        material.Colors.transparent,
+                                    shadowColor: material.Colors.transparent,
+                                    padding:
+                                        const material.EdgeInsets.symmetric(
+                                          horizontal: 32,
+                                          vertical: 14,
+                                        ),
+                                    textStyle: const material.TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: material.FontWeight.bold,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: isLastCoach
+                                      ? _submitForm
+                                      : () => _goToNextCoach(
+                                          inspectionProvider,
+                                          coachId,
+                                        ),
                                 ),
-                                style: material.ElevatedButton.styleFrom(
-                                  backgroundColor: material.Colors.deepPurple,
-                                  padding: const material.EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                    vertical: 14,
-                                  ),
-                                  textStyle: const material.TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: material.FontWeight.bold,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: isLastCoach
-                                    ? _submitForm
-                                    : () => _goToNextCoach(
-                                        inspectionProvider,
-                                        coachId,
-                                      ),
                               ),
                             ),
-                            const material.SizedBox(height: 24),
+                            const material.SizedBox(height: 40),
                           ],
                         ),
                       );
