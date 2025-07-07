@@ -7,8 +7,7 @@ class GlobalVariables {
     end: Alignment.bottomRight,
   );
 
-  static const reddishPurpleColor = Color(0xFFA11A7E);
-  // static const purpleColor = Color(0xFF7920A2);
-  static const purpleColor = Color(0xFF852093);
+  static const purpleColor = Color(0xFFA11A7E);
+  static const deepPurpleColor = Color(0xFF852093);
   static const backgroundColor = Colors.white;
 }

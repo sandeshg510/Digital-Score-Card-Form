@@ -1,4 +1,3 @@
-// lib/screens/station_header_form_screen.dart
 import 'package:digital_score_card_form_for_inspection/constants/global_variables.dart';
 import 'package:digital_score_card_form_for_inspection/core/common/widgets/basics.dart';
 import 'package:digital_score_card_form_for_inspection/core/common/widgets/gradient_button.dart';
@@ -111,13 +110,13 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: ColorScheme.light(
-              primary: GlobalVariables.reddishPurpleColor,
+              primary: GlobalVariables.purpleColor,
               onPrimary: Colors.white,
               onSurface: Colors.black,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: GlobalVariables.purpleColor,
+                foregroundColor: GlobalVariables.deepPurpleColor,
               ),
             ),
           ),
@@ -159,15 +158,13 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: ColorScheme.light(
-              primary: GlobalVariables
-                  .reddishPurpleColor, // Picker header background
-              onPrimary: Colors.white, // Picker header text color
-              onSurface: Colors.black, // Picker time text color
+              primary: GlobalVariables.purpleColor,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor:
-                    GlobalVariables.purpleColor, // OK/Cancel button color
+                foregroundColor: GlobalVariables.deepPurpleColor,
               ),
             ),
           ),
@@ -199,11 +196,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
     if (_formKey.currentState!.validate()) {
       if (provider.stationInspectionData.totalNoOfCoaches == null ||
           provider.stationInspectionData.totalNoOfCoaches! <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter a valid number of coaches (>0)'),
-          ),
-        );
+        showSnackBar(context, 'Please enter a valid number of coaches (>0)');
         return;
       }
       Navigator.push(
@@ -211,11 +204,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
         MaterialPageRoute(builder: (context) => const StationScoreCardScreen()),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all required fields to continue.'),
-        ),
-      );
+      showSnackBar(context, 'Please fill all required fields to continue.');
     }
   }
 
@@ -404,7 +393,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
         Text(
           labelText,
           style: const TextStyle(
-            color: GlobalVariables.reddishPurpleColor, // Purple label
+            color: GlobalVariables.purpleColor,
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -425,24 +414,20 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
               child: Icon(icon, color: Colors.white, size: 18),
             ),
             filled: true,
-            fillColor: Colors.white, // Light background
+            fillColor: Colors.white,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(
-                color: Colors.grey, // Light gray border
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Colors.grey, width: 1),
             ),
 
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: const BorderSide(
-                color: GlobalVariables.purpleColor, // Purple when focused
+                color: GlobalVariables.deepPurpleColor,
                 width: 2,
               ),
             ),
 
-            // Redundant but safe fallback for default
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
@@ -487,7 +472,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
           Text(
             labelText,
             style: const TextStyle(
-              color: GlobalVariables.reddishPurpleColor, // Purple label
+              color: GlobalVariables.purpleColor,
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -497,14 +482,10 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
             child: TextFormField(
               controller: TextEditingController(text: selectedText),
               decoration: InputDecoration(
-                // labelText: labelText,
                 labelStyle: TextStyle(color: Colors.grey[700]),
-                prefixIcon: Icon(
-                  icon,
-                  color: GlobalVariables.reddishPurpleColor,
-                ),
+                prefixIcon: Icon(icon, color: GlobalVariables.purpleColor),
                 filled: true,
-                fillColor: Colors.white, // Light background
+                fillColor: Colors.white,
 
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -512,10 +493,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(
-                    color: Colors.grey, // Light gray border
-                    width: 1,
-                  ),
+                  borderSide: const BorderSide(color: Colors.grey, width: 1),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -562,7 +540,7 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
           Text(
             labelText,
             style: const TextStyle(
-              color: GlobalVariables.reddishPurpleColor, // Purple label
+              color: GlobalVariables.purpleColor,
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -573,27 +551,21 @@ class _StationHeaderFormScreenState extends State<StationHeaderFormScreen>
               controller: TextEditingController(text: selectedText),
               decoration: InputDecoration(
                 labelStyle: TextStyle(color: Colors.grey[700]),
-                prefixIcon: Icon(
-                  icon,
-                  color: GlobalVariables.reddishPurpleColor,
-                ),
+                prefixIcon: Icon(icon, color: GlobalVariables.purpleColor),
                 filled: true,
-                fillColor: Colors.white, // Light background
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(
-                    color: Colors.grey, // Light gray border
-                    width: 1,
-                  ),
+                  borderSide: const BorderSide(color: Colors.grey, width: 1),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: const BorderSide(
-                    color: GlobalVariables.purpleColor,
+                    color: GlobalVariables.deepPurpleColor,
                     width: 2,
                   ),
                 ),

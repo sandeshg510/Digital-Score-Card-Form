@@ -1,8 +1,6 @@
-// lib/services/pdf_service.dart
-
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart'; // Keep this for TimeOfDay, etc.
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -11,8 +9,6 @@ import 'package:printing/printing.dart';
 import '../models/station_inspection_data.dart';
 
 class PdfService {
-  // Helper to map Flutter TextAlign to pdf Alignment
-  // Moved this to be a static method so it can be called correctly.
   static pw.Alignment _getAlignment(pw.TextAlign textAlign) {
     switch (textAlign) {
       case pw.TextAlign.left:
@@ -32,7 +28,6 @@ class PdfService {
 
     final font = await PdfGoogleFonts.notoSerifRegular();
 
-    // Helper to format dates and times
     String formatDate(DateTime? date) {
       return date != null ? DateFormat('dd/MM/yyyy').format(date) : '';
     }
@@ -44,10 +39,8 @@ class PdfService {
       return DateFormat('hh:mm a').format(dt);
     }
 
-    // List to hold table rows
     final List<pw.TableRow> tableRows = [];
 
-    // Cell styling helper
     pw.Container _buildCell(
       pw.Widget? child, {
       pw.TextAlign? textAlign,
@@ -66,7 +59,6 @@ class PdfService {
       );
     }
 
-    // Header row
     final List<pw.Widget> headerCells = [
       _buildCell(
         pw.Text(
@@ -103,9 +95,8 @@ class PdfService {
         ),
         textAlign: pw.TextAlign.center,
         border: pw.Border.all(width: 0.5),
-      ), // Changed to T'let
+      ),
     ];
-    // Add dynamic coach headers
     for (var coachId in data.coachColumns) {
       headerCells.add(
         _buildCell(
@@ -126,17 +117,14 @@ class PdfService {
 
     int slNo = 1;
 
-    // Iterate through sections and then parameters to build the table with merged cells
     for (var section in data.sections) {
       for (var parameter in section.parameters) {
         if (parameter.subParameters.isEmpty) continue;
 
         final int subParameterCount = parameter.subParameters.length;
 
-        // --- First row of the parameter block (with Sl No and Itemized Description) ---
         final List<pw.Widget> firstRowCells = [];
 
-        // Sl No cell (with top, left, right border, but not bottom)
         firstRowCells.add(
           _buildCell(
             pw.Text(
@@ -150,35 +138,29 @@ class PdfService {
               right: const pw.BorderSide(width: 0.5),
               bottom: subParameterCount == 1
                   ? const pw.BorderSide(width: 0.5)
-                  : pw
-                        .BorderSide
-                        .none, // Only bottom if it's a single sub-parameter
+                  : pw.BorderSide.none,
             ),
           ),
         );
 
-        // Itemized Description of work cell (with top, left, right border, but not bottom)
         firstRowCells.add(
           _buildCell(
             pw.Text(
               parameter.name,
               style: pw.TextStyle(font: font, fontSize: 8),
             ),
-            textAlign: pw.TextAlign.left, // Use pw.TextAlign.left directly
+            textAlign: pw.TextAlign.left,
             border: pw.Border(
               top: const pw.BorderSide(width: 0.5),
               left: const pw.BorderSide(width: 0.5),
               right: const pw.BorderSide(width: 0.5),
               bottom: subParameterCount == 1
                   ? const pw.BorderSide(width: 0.5)
-                  : pw
-                        .BorderSide
-                        .none, // Only bottom if it's a single sub-parameter
+                  : pw.BorderSide.none,
             ),
           ),
         );
 
-        // First T'let (Tlm) and score cells (with all borders)
         final firstSubParameter = parameter.subParameters.first;
         firstRowCells.add(
           _buildCell(
@@ -207,45 +189,37 @@ class PdfService {
         }
         tableRows.add(pw.TableRow(children: firstRowCells));
 
-        // --- Subsequent rows for sub-parameters (without Sl No and Itemized Description) ---
         for (int i = 1; i < subParameterCount; i++) {
           final subParameter = parameter.subParameters[i];
           final List<pw.Widget> subRowCells = [];
 
-          // Add empty cells for spanned columns (Sl No and Itemized Description),
-          // maintaining only left and right borders, no top/bottom for merging effect.
           final isLastSubParameter = (i == subParameterCount - 1);
 
           subRowCells.add(
             _buildCell(
-              pw.SizedBox.shrink(), // Empty cell for visual spanning
+              pw.SizedBox.shrink(),
               border: pw.Border(
                 left: const pw.BorderSide(width: 0.5),
                 right: const pw.BorderSide(width: 0.5),
                 bottom: isLastSubParameter
                     ? const pw.BorderSide(width: 0.5)
-                    : pw
-                          .BorderSide
-                          .none, // Only bottom border on the last sub-parameter row for this group
+                    : pw.BorderSide.none,
               ),
             ),
           );
           subRowCells.add(
             _buildCell(
-              pw.SizedBox.shrink(), // Empty cell for visual spanning
+              pw.SizedBox.shrink(),
               border: pw.Border(
                 left: const pw.BorderSide(width: 0.5),
                 right: const pw.BorderSide(width: 0.5),
                 bottom: isLastSubParameter
                     ? const pw.BorderSide(width: 0.5)
-                    : pw
-                          .BorderSide
-                          .none, // Only bottom border on the last sub-parameter row for this group
+                    : pw.BorderSide.none,
               ),
             ),
           );
 
-          // T'let (Tlm) and score cells (with all borders)
           subRowCells.add(
             _buildCell(
               pw.Text(
@@ -274,8 +248,6 @@ class PdfService {
           tableRows.add(pw.TableRow(children: subRowCells));
         }
 
-        // Add remarks row if remarks exist for the parameter.
-        // This row will typically span all columns and have full borders.
         if (parameter.remarks != null && parameter.remarks!.isNotEmpty) {
           tableRows.add(
             pw.TableRow(
@@ -283,7 +255,7 @@ class PdfService {
                 _buildCell(
                   pw.SizedBox.shrink(),
                   border: pw.Border.all(width: 0.5),
-                ), // Sl No column - empty
+                ),
                 _buildCell(
                   pw.Text(
                     'Remarks for ${parameter.name}:',
@@ -300,7 +272,6 @@ class PdfService {
                   textAlign: pw.TextAlign.left,
                   border: pw.Border.all(width: 0.5),
                 ),
-                // Remaining columns for coach scores - empty with borders
                 for (int i = 0; i < data.coachColumns.length; i++)
                   _buildCell(
                     pw.SizedBox.shrink(),
@@ -311,7 +282,7 @@ class PdfService {
           );
         }
 
-        slNo++; // Increment Sl No for the next main parameter
+        slNo++;
       }
     }
 
@@ -462,25 +433,10 @@ class PdfService {
                       style: pw.TextStyle(font: font, fontSize: 10),
                     ),
                   ),
-                  // These fields are not in the current data model nor requested for calculations
-                  // in provider due to 'no changes to files' instruction.
-                  // pw.Expanded(
-                  //   child: pw.Text(
-                  //     'Total Score obtained: ${data.totalScoreObtained ?? 'N/A'}%',
-                  //     style: pw.TextStyle(font: font, fontSize: 10),
-                  //   ),
-                  // ),
-                  // pw.Expanded(
-                  //   child: pw.Text(
-                  //     'Inaccessible: ${data.inaccessibleCount ?? 'N/A'}x',
-                  //     style: pw.TextStyle(font: font, fontSize: 10),
-                  //   ),
-                  // ),
                 ],
               ),
               pw.SizedBox(height: 15),
 
-              // Score Table
               pw.Text(
                 'CLEAN TRAIN STATION ACTIVITIES',
                 style: pw.TextStyle(
@@ -492,12 +448,9 @@ class PdfService {
               pw.SizedBox(height: 5),
               pw.Table(
                 columnWidths: {
-                  0: const pw.FixedColumnWidth(20), // Sl No
-                  1: const pw.FlexColumnWidth(
-                    3,
-                  ), // Itemized Description of work (expanded)
-                  2: const pw.FixedColumnWidth(25), // T'let
-                  // Distribute coach columns equally
+                  0: const pw.FixedColumnWidth(20),
+                  1: const pw.FlexColumnWidth(3),
+                  2: const pw.FixedColumnWidth(25),
                   for (int i = 0; i < data.coachColumns.length; i++)
                     (i + 3): const pw.FlexColumnWidth(1),
                 },
@@ -537,7 +490,7 @@ class PdfService {
               pw.Align(
                 alignment: pw.Alignment.bottomRight,
                 child: pw.Text(
-                  'Page 1 of 12', // This might need dynamic page numbering if content overflows
+                  'Page 1 of 12',
                   style: pw.TextStyle(font: font, fontSize: 8),
                 ),
               ),

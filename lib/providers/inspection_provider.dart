@@ -1,13 +1,8 @@
-// lib/providers/inspection_provider.dart
-
 import 'package:flutter/material.dart';
 
-// Removed import for CoachCleaningInspectionData
-// import '../models/coach_inspection_data.dart';
 import '../models/station_inspection_data.dart';
 
 class InspectionProvider extends ChangeNotifier {
-  // --- Station Inspection Data & Methods ---
   StationInspectionData _stationInspectionData =
       StationInspectionData.initial();
 
@@ -201,13 +196,11 @@ class InspectionProvider extends ChangeNotifier {
     _stationInspectionData = _stationInspectionData.copyWith(
       sections: updatedSections,
     );
-    // No notifyListeners here as it's typically called before a screen transition or submission
   }
 
   void calculateNoOfCoachesAttended() {
     int coachesAttended = 0;
     if (_stationInspectionData.coachColumns.isNotEmpty) {
-      // Assuming a coach is "attended" if at least one score is not null/0 (or all are filled)
       for (String coachId in _stationInspectionData.coachColumns) {
         bool isCoachAttended = false;
         for (var section in _stationInspectionData.sections) {
@@ -235,20 +228,19 @@ class InspectionProvider extends ChangeNotifier {
   }
 
   bool isStationFormValidForSubmission() {
-    // Check if all sub-parameters for all coaches have a score (not null)
     for (String coachId in _stationInspectionData.coachColumns) {
       for (var section in _stationInspectionData.sections) {
         for (var parameter in section.parameters) {
           for (var subParam in parameter.subParameters) {
             if (subParam.coachIds.contains(coachId) &&
                 subParam.scores[coachId] == null) {
-              return false; // Found a missing score
+              return false;
             }
           }
         }
       }
     }
-    return true; // All scores are present
+    return true;
   }
 
   void resetStationForm() {
@@ -256,7 +248,6 @@ class InspectionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Helper function for initial station sections (copied from the model's helper)
   List<StationSection> _createInitialStationSections(
     List<String> coachColumns,
   ) {
@@ -349,7 +340,4 @@ class InspectionProvider extends ChangeNotifier {
       ),
     ];
   }
-
-  // --- Coach Cleaning Inspection Data & Methods ---
-  // ALL CODE RELATED TO CoachCleaningInspectionData HAS BEEN REMOVED BELOW THIS LINE
 }

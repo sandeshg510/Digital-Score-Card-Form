@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../models/coach_inspection_data.dart'; // Import the data model
+import '../models/coach_inspection_data.dart';
 
 class CoachCleaningProvider with ChangeNotifier {
   CoachCleaningInspectionData _coachCleaningInspectionData =
@@ -10,8 +10,6 @@ class CoachCleaningProvider with ChangeNotifier {
 
   CoachCleaningInspectionData get coachCleaningInspectionData =>
       _coachCleaningInspectionData;
-
-  // --- Methods to update header data ---
 
   void updateCoachCleaningAgreementNo(String? agreementNo) {
     _coachCleaningInspectionData.agreementNo = agreementNo;
@@ -63,13 +61,10 @@ class CoachCleaningProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Methods for CoachColumnData (scoring) ---
-
   void generateCoachCleaningCoachColumns(int numberOfCoaches) {
     if (numberOfCoaches < 0) numberOfCoaches = 0;
 
-    _coachCleaningInspectionData.totalNoOfCoaches =
-        numberOfCoaches; // Update total count in header data
+    _coachCleaningInspectionData.totalNoOfCoaches = numberOfCoaches;
 
     List<CoachColumnData> newCoachColumns = [];
 
@@ -79,10 +74,10 @@ class CoachCleaningProvider with ChangeNotifier {
       } else {
         newCoachColumns.add(
           CoachColumnData(
-            coachNo: 'C${i + 1}', // Default naming convention for tabs
-            scores: {}, // Initialize with empty map for scores
+            coachNo: 'C${i + 1}',
+            scores: {},
             remarks: '',
-            totalScoreObtained: 0, // Initialize to 0
+            totalScoreObtained: 0,
           ),
         );
       }
@@ -97,9 +92,8 @@ class CoachCleaningProvider with ChangeNotifier {
   ) {
     if (index >= 0 &&
         index < _coachCleaningInspectionData.coachColumns.length) {
-      // Recalculate total marks obtained for the updated coach column
       updatedCoachColumnData.totalScoreObtained = updatedCoachColumnData
-          .calculateTotalScoreObtained(); // Changed to int
+          .calculateTotalScoreObtained();
       _coachCleaningInspectionData.coachColumns[index] = updatedCoachColumnData;
       notifyListeners();
     }

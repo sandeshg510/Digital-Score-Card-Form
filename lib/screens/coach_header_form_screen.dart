@@ -1,14 +1,12 @@
-// lib/screens/coach_header_form_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../constants/global_variables.dart';
-import '../core/common/widgets/basics.dart'; // Assuming this file provides CommonWidgets and verticalSpace
+import '../core/common/widgets/basics.dart';
 import '../core/common/widgets/gradient_app_bar.dart';
 import '../core/common/widgets/gradient_button.dart';
-import '../providers/coach_cleaning_provider.dart'; // Changed from InspectionProvider
-import 'coach_score_card_screen.dart'; // This screen will be created next
+import '../providers/coach_cleaning_provider.dart';
+import 'coach_score_card_screen.dart';
 
 class CoachHeaderFormScreen extends StatefulWidget {
   const CoachHeaderFormScreen({super.key});
@@ -19,7 +17,6 @@ class CoachHeaderFormScreen extends StatefulWidget {
 
 class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
     with CommonWidgets {
-  // Assuming CommonWidgets from basics.dart
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _agreementNoController = TextEditingController();
   final TextEditingController _nameOfContractorController =
@@ -30,7 +27,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
   final TextEditingController _coachNoInRakeController =
       TextEditingController();
   final TextEditingController _totalCoachesForScoringController =
-      TextEditingController(); // To define number of coach tabs/columns
+      TextEditingController();
 
   String _selectedAgreementDateText = "Select Date";
   String _selectedInspectionDateText = "Select Date of Inspection";
@@ -40,11 +37,9 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
   @override
   void initState() {
     super.initState();
-    // Changed provider type here
     final provider = Provider.of<CoachCleaningProvider>(context, listen: false);
     final data = provider.coachCleaningInspectionData;
 
-    // Initialize controllers with existing data
     _agreementNoController.text = data.agreementNo ?? '';
     _nameOfContractorController.text = data.nameOfContractor ?? '';
     _nameOfSupervisorController.text = data.nameOfSupervisor ?? '';
@@ -54,7 +49,6 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
         ? data.coachColumns.length.toString()
         : '';
 
-    // Update date/time display strings
     _updateDateDisplay(
       data.agreementDate,
       (text) => _selectedAgreementDateText = text,
@@ -98,9 +92,8 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
 
   Future<void> _selectDate(
     BuildContext context,
-    CoachCleaningProvider provider, // Changed provider type
-    bool
-    isAgreementDate, // True for Agreement Date, false for Date of Inspection
+    CoachCleaningProvider provider,
+    bool isAgreementDate,
   ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -114,13 +107,13 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: ColorScheme.light(
-              primary: GlobalVariables.reddishPurpleColor,
+              primary: GlobalVariables.purpleColor,
               onPrimary: Colors.white,
               onSurface: Colors.black,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: GlobalVariables.purpleColor,
+                foregroundColor: GlobalVariables.deepPurpleColor,
               ),
             ),
           ),
@@ -151,9 +144,8 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
 
   Future<void> _selectTime(
     BuildContext context,
-    CoachCleaningProvider provider, // Changed provider type
-    bool
-    isWorkStartedTime, // True for Time Work Started, false for Time Work Completed
+    CoachCleaningProvider provider,
+    bool isWorkStartedTime,
   ) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -166,13 +158,13 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: ColorScheme.light(
-              primary: GlobalVariables.reddishPurpleColor,
+              primary: GlobalVariables.purpleColor,
               onPrimary: Colors.white,
               onSurface: Colors.black,
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: GlobalVariables.purpleColor,
+                foregroundColor: GlobalVariables.deepPurpleColor,
               ),
             ),
           ),
@@ -200,18 +192,14 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
   }
 
   void _navigateToCoaches() {
-    // Changed provider type
     final provider = Provider.of<CoachCleaningProvider>(context, listen: false);
     if (_formKey.currentState!.validate()) {
-      // Ensure that coach columns have been generated based on user input
       if (provider.coachCleaningInspectionData.coachColumns.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Please enter a valid number of coaches to score (>0) to generate coach columns.',
-            ),
-          ),
+        showSnackBar(
+          context,
+          'Please enter a valid number of coaches to score (>0) to generate coach columns.',
         );
+
         return;
       }
       Navigator.push(
@@ -219,22 +207,16 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
         MaterialPageRoute(builder: (context) => const CoachScoreCardScreen()),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all required fields to continue.'),
-        ),
-      );
+      showSnackBar(context, 'Please fill all required fields to continue.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Changed provider type
     return Consumer<CoachCleaningProvider>(
       builder: (context, coachCleaningProvider, child) {
         final data = coachCleaningProvider.coachCleaningInspectionData;
 
-        // Ensure display strings are updated on rebuilds from provider changes
         _updateDateDisplay(
           data.agreementDate,
           (text) => _selectedAgreementDateText = text,
@@ -251,12 +233,10 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
           data.timeWorkCompleted,
           (text) => _selectedTimeWorkCompletedText = text,
         );
-        // This is important: update the text controller for total coaches if coachColumns changes externally
         _totalCoachesForScoringController.text = data.coachColumns.isNotEmpty
             ? data.coachColumns.length.toString()
             : _totalCoachesForScoringController.text;
 
-        // Also update trainNo, coachNoInRake, etc., in case they are updated by external logic
         _agreementNoController.text = data.agreementNo ?? '';
         _nameOfContractorController.text = data.nameOfContractor ?? '';
         _nameOfSupervisorController.text = data.nameOfSupervisor ?? '';
@@ -278,8 +258,8 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                     controller: _agreementNoController,
                     labelText: 'Agreement No.',
                     icon: Icons.article,
-                    onChanged: coachCleaningProvider
-                        .updateCoachCleaningAgreementNo, // Changed provider variable name
+                    onChanged:
+                        coachCleaningProvider.updateCoachCleaningAgreementNo,
                     validator: (value) => value == null || value.isEmpty
                         ? 'Agreement No. is required'
                         : null,
@@ -288,11 +268,8 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                   verticalSpace(height: 25),
                   _buildDateSelectionField(
                     context: context,
-                    onTap: () => _selectDate(
-                      context,
-                      coachCleaningProvider, // Changed provider variable name
-                      true,
-                    ), // isAgreementDate = true
+                    onTap: () =>
+                        _selectDate(context, coachCleaningProvider, true),
                     selectedText: _selectedAgreementDateText,
                     labelText: 'Agreement Date',
                     icon: Icons.calendar_month,
@@ -308,11 +285,8 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                   const SizedBox(height: 16),
                   _buildDateSelectionField(
                     context: context,
-                    onTap: () => _selectDate(
-                      context,
-                      coachCleaningProvider, // Changed provider variable name
-                      false,
-                    ), // isAgreementDate = false (for Inspection Date)
+                    onTap: () =>
+                        _selectDate(context, coachCleaningProvider, false),
                     selectedText: _selectedInspectionDateText,
                     labelText: 'Date of Inspection*',
                     icon: Icons.calendar_month,
@@ -331,7 +305,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                     labelText: 'Name of Supervisor*',
                     icon: Icons.supervisor_account,
                     onChanged: coachCleaningProvider
-                        .updateCoachCleaningNameOfSupervisor, // Changed provider variable name
+                        .updateCoachCleaningNameOfSupervisor,
                     validator: (value) => value == null || value.isEmpty
                         ? 'Supervisor Name is required'
                         : null,
@@ -343,15 +317,14 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                     labelText: 'Name of Contractor',
                     icon: Icons.business,
                     onChanged: coachCleaningProvider
-                        .updateCoachCleaningNameOfContractor, // Changed provider variable name
+                        .updateCoachCleaningNameOfContractor,
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _trainNoController,
                     labelText: 'Train No.',
                     icon: Icons.train,
-                    onChanged: coachCleaningProvider
-                        .updateCoachCleaningTrainNo, // Changed provider variable name
+                    onChanged: coachCleaningProvider.updateCoachCleaningTrainNo,
                     validator: (value) => value == null || value.isEmpty
                         ? 'Train No. is required'
                         : null,
@@ -363,11 +336,8 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                       Expanded(
                         child: _buildTimeSelectionField(
                           context: context,
-                          onTap: () => _selectTime(
-                            context,
-                            coachCleaningProvider, // Changed provider variable name
-                            true,
-                          ), // isWorkStartedTime = true
+                          onTap: () =>
+                              _selectTime(context, coachCleaningProvider, true),
                           selectedText: _selectedTimeWorkStartedText,
                           labelText: 'Time Work Started',
                           icon: Icons.access_time,
@@ -379,9 +349,9 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                           context: context,
                           onTap: () => _selectTime(
                             context,
-                            coachCleaningProvider, // Changed provider variable name
+                            coachCleaningProvider,
                             false,
-                          ), // isWorkStartedTime = false (for Work Completed)
+                          ),
                           selectedText: _selectedTimeWorkCompletedText,
                           labelText: 'Time Work Completed',
                           icon: Icons.access_time,
@@ -392,19 +362,17 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _coachNoInRakeController,
-                    labelText:
-                        'Coach No. in the Rake', // This is for a single coach number
+                    labelText: 'Coach No. in the Rake',
                     icon: Icons.confirmation_number,
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
                       coachCleaningProvider.updateCoachCleaningCoachNoInRake(
-                        // Changed provider variable name
                         int.tryParse(value),
                       );
                     },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Coach No. in Rake is required'; // Specific error message
+                        return 'Coach No. in Rake is required';
                       }
                       if (int.tryParse(value) == null ||
                           int.parse(value) <= 0) {
@@ -417,22 +385,19 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _totalCoachesForScoringController,
-                    labelText:
-                        'Number of Coaches to Score*', // User input for generating tabs
+                    labelText: 'Number of Coaches to Score*',
                     icon: Icons.numbers,
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
                       int? count = int.tryParse(value);
                       if (count != null && count > 0) {
                         coachCleaningProvider.generateCoachCleaningCoachColumns(
-                          // Changed provider variable name
                           count,
                         );
                       } else {
                         coachCleaningProvider.generateCoachCleaningCoachColumns(
-                          // Changed provider variable name
                           0,
-                        ); // Clear columns if invalid
+                        );
                       }
                     },
                     validator: (value) {
@@ -458,8 +423,6 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
     );
   }
 
-  // --- Helper Widgets (Copied from StationHeaderFormScreen and adapted if necessary) ---
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String labelText,
@@ -475,7 +438,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
         Text(
           labelText,
           style: const TextStyle(
-            color: GlobalVariables.reddishPurpleColor,
+            color: GlobalVariables.purpleColor,
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -504,7 +467,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: const BorderSide(
-                color: GlobalVariables.purpleColor,
+                color: GlobalVariables.deepPurpleColor,
                 width: 2,
               ),
             ),
@@ -551,7 +514,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
           Text(
             labelText,
             style: const TextStyle(
-              color: GlobalVariables.reddishPurpleColor,
+              color: GlobalVariables.purpleColor,
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -562,10 +525,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
               controller: TextEditingController(text: selectedText),
               decoration: InputDecoration(
                 labelStyle: TextStyle(color: Colors.grey[700]),
-                prefixIcon: Icon(
-                  icon,
-                  color: GlobalVariables.reddishPurpleColor,
-                ),
+                prefixIcon: Icon(icon, color: GlobalVariables.purpleColor),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -621,7 +581,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
           Text(
             labelText,
             style: const TextStyle(
-              color: GlobalVariables.reddishPurpleColor,
+              color: GlobalVariables.purpleColor,
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -632,10 +592,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
               controller: TextEditingController(text: selectedText),
               decoration: InputDecoration(
                 labelStyle: TextStyle(color: Colors.grey[700]),
-                prefixIcon: Icon(
-                  icon,
-                  color: GlobalVariables.reddishPurpleColor,
-                ),
+                prefixIcon: Icon(icon, color: GlobalVariables.purpleColor),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -649,7 +606,7 @@ class _CoachHeaderFormScreenState extends State<CoachHeaderFormScreen>
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: const BorderSide(
-                    color: GlobalVariables.purpleColor,
+                    color: GlobalVariables.deepPurpleColor,
                     width: 2,
                   ),
                 ),

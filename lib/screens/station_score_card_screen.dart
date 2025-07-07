@@ -1,16 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart' as material;
-import 'package:flutter/material.dart'; // Keep direct import for other Material widgets
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
-import 'package:provider/provider.dart'; // Import Provider directly
+import 'package:provider/provider.dart';
 
-import '../constants/global_variables.dart'; // Import global_variables
+import '../constants/global_variables.dart';
 import '../core/common/widgets/gradient_tab_app_bar.dart';
 import '../providers/inspection_provider.dart';
-import '../services/pdf_service.dart'; // Import printing package
+import '../services/pdf_service.dart';
 
 class StationScoreCardScreen extends StatefulWidget {
   const StationScoreCardScreen({super.key});
@@ -82,17 +82,14 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
     }
 
     try {
-      // 1. Generate PDF
       final pdfBytes = await PdfService.generateStationScoreCardPdf(
         provider.stationInspectionData,
       );
 
-      // 2. Display PDF Preview
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => pdfBytes,
       );
 
-      // 3. (Optional) Submit data to backend
       final jsonData = provider.stationInspectionData.toJson();
       final url = Uri.parse('https://httpbin.org/post');
 
@@ -108,7 +105,6 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
             content: material.Text('Station Form submitted successfully!'),
           ),
         );
-        print('Station Submission Successful: ${response.body}');
         provider.resetStationForm();
         material.Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
@@ -119,7 +115,6 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
             ),
           ),
         );
-        print('Station Submission Failed: ${response.body}');
       }
     } catch (e) {
       material.ScaffoldMessenger.of(context).showSnackBar(
@@ -129,7 +124,6 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
           ),
         ),
       );
-      print('Error during Station submission: $e');
     }
   }
 
@@ -214,7 +208,7 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                 style: const material.TextStyle(
                                   fontSize: 20,
                                   fontWeight: material.FontWeight.bold,
-                                  color: GlobalVariables.purpleColor,
+                                  color: GlobalVariables.deepPurpleColor,
                                 ),
                               ),
                             ),
@@ -237,7 +231,7 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                       style: const material.TextStyle(
                                         fontSize: 18,
                                         fontWeight: material.FontWeight.bold,
-                                        color: GlobalVariables.purpleColor,
+                                        color: GlobalVariables.deepPurpleColor,
                                       ),
                                     ),
                                     ...section.parameters.map((parameter) {
@@ -303,7 +297,6 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                                                 horizontal: 18,
                                                                 vertical: 8,
                                                               ),
-                                                          // Reverted to OutlineInputBorder
                                                           border: OutlineInputBorder(
                                                             borderRadius:
                                                                 material
@@ -340,12 +333,11 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                                                     .BorderRadius.circular(
                                                                   10,
                                                                 ),
-                                                            borderSide:
-                                                                const BorderSide(
-                                                                  color: GlobalVariables
-                                                                      .purpleColor,
-                                                                  width: 2,
-                                                                ),
+                                                            borderSide: const BorderSide(
+                                                              color: GlobalVariables
+                                                                  .deepPurpleColor,
+                                                              width: 2,
+                                                            ),
                                                           ),
                                                           filled: true,
                                                           fillColor:
@@ -403,7 +395,6 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                                       color:
                                                           material.Colors.grey,
                                                     ),
-                                                // Reverted to OutlineInputBorder
                                                 border: OutlineInputBorder(
                                                   borderRadius: material
                                                       .BorderRadius.circular(10),
@@ -431,7 +422,7 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                                       .BorderRadius.circular(10),
                                                   borderSide: const BorderSide(
                                                     color: GlobalVariables
-                                                        .purpleColor,
+                                                        .deepPurpleColor,
                                                     width: 2,
                                                   ),
                                                 ),
@@ -471,7 +462,7 @@ class _StationScoreCardScreenState extends State<StationScoreCardScreen>
                                   style: const material.TextStyle(
                                     fontSize: 18,
                                     fontWeight: material.FontWeight.bold,
-                                    color: GlobalVariables.purpleColor,
+                                    color: GlobalVariables.deepPurpleColor,
                                   ),
                                 ),
                               ),

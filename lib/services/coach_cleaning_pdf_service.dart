@@ -1,18 +1,15 @@
-// lib/services/pdf_service.dart
-
-import 'package:flutter/foundation.dart'; // For Uint8List
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import '../models/coach_inspection_data.dart'; // For date and time formatting
+import '../models/coach_inspection_data.dart';
 
 class PdfServices {
-  // Ensure this method name and its parameters exactly match the call from CoachScoreCardScreen
   Future<Uint8List> generateCoachCleaningPdf({
     required CoachCleaningInspectionData inspectionData,
-    required CoachColumnData coachColumnData, // Data for the specific coach
+    required CoachColumnData coachColumnData,
   }) async {
     final pdf = pw.Document();
 
@@ -20,14 +17,12 @@ class PdfServices {
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (pw.Context context) {
-          // Define a common text style
           final baseTextStyle = const pw.TextStyle(fontSize: 10);
           final boldTextStyle = pw.TextStyle(
             fontSize: 10,
             fontWeight: pw.FontWeight.bold,
           );
 
-          // Helper function for building table cells
           pw.Widget _buildCell(
             String text, {
             pw.TextStyle? style,
@@ -59,12 +54,11 @@ class PdfServices {
               pw.Text('Annexure-03 of ITT', style: baseTextStyle),
               pw.SizedBox(height: 5),
 
-              // Inspection Details Table
               pw.Table(
                 border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey),
                 columnWidths: {
-                  0: const pw.FixedColumnWidth(100), // Label column
-                  1: const pw.FlexColumnWidth(1), // Value column
+                  0: const pw.FixedColumnWidth(100),
+                  1: const pw.FlexColumnWidth(1),
                 },
                 children: [
                   pw.TableRow(
@@ -150,7 +144,6 @@ class PdfServices {
               ),
               pw.SizedBox(height: 10),
 
-              // Scoring Items Table
               pw.Table.fromTextArray(
                 headers: [
                   'S. No.',
@@ -175,10 +168,10 @@ class PdfServices {
                 cellAlignment: pw.Alignment.centerLeft,
                 cellStyle: baseTextStyle,
                 columnWidths: {
-                  0: const pw.FixedColumnWidth(30), // S. No.
-                  1: const pw.FlexColumnWidth(3), // Itemized Description
-                  2: const pw.FixedColumnWidth(60), // Max. Marks
-                  3: const pw.FixedColumnWidth(60), // Marks Obtained
+                  0: const pw.FixedColumnWidth(30),
+                  1: const pw.FlexColumnWidth(3),
+                  2: const pw.FixedColumnWidth(60),
+                  3: const pw.FixedColumnWidth(60),
                 },
               ),
               pw.SizedBox(height: 10),
@@ -203,7 +196,7 @@ class PdfServices {
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text('Signature of Supervisor', style: boldTextStyle),
-                    pw.SizedBox(height: 20), // Space for signature
+                    pw.SizedBox(height: 20),
                     pw.Text(
                       'Signature of Contractor/Supervisor',
                       style: boldTextStyle,
@@ -220,13 +213,11 @@ class PdfServices {
     return pdf.save();
   }
 
-  // Helper method for date formatting
   String formatDate(DateTime? date) {
     if (date == null) return 'N/A';
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
-  // Helper method for time formatting
   String formatTime(TimeOfDay? time) {
     if (time == null) return 'N/A';
     final now = DateTime.now();

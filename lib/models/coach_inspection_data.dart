@@ -1,35 +1,30 @@
-// lib/models/coach_cleaning_inspection_data.dart
-
-import 'package:flutter/material.dart'; // For TimeOfDay
+import 'package:flutter/material.dart';
 
 enum Section {
-  // Header details (not scoring sections, but part of the overall data)
   AGREEMENT_NO,
   AGREEMENT_DATE,
   DATE_OF_INSPECTION,
   NAME_OF_CONTRACTOR,
   NAME_OF_SUPERVISOR,
   TRAIN_NO,
-  COACH_NO_IN_RAKE, // This is for the single coach number in the header
+  COACH_NO_IN_RAKE,
   TIME_WORK_STARTED,
   TIME_WORK_COMPLETED,
-  TOTAL_COACHES_FOR_SCORING, // This is for the total count of coaches
-  INACCESSIBLE_COACHES, // Added based on A_1_SCORE CARD (1).jpg
-  // Scoring Sections based on A_1_SCORE CARD (1).jpg
-  TOILET_COMPLETE_CLEANLINESS_T1, // T1 - Floor
-  TOILET_COMPLETE_CLEANLINESS_T2, // T2 - Walls & fittings
-  TOILET_COMPLETE_CLEANLINESS_T3, // T3 - Commode/Pan
-  TOILET_COMPLETE_CLEANLINESS_T4, // T4 - Wash Basin & Mirror
+  TOTAL_COACHES_FOR_SCORING,
+  INACCESSIBLE_COACHES,
+  TOILET_COMPLETE_CLEANLINESS_T1,
+  TOILET_COMPLETE_CLEANLINESS_T2,
+  TOILET_COMPLETE_CLEANLINESS_T3,
+  TOILET_COMPLETE_CLEANLINESS_T4,
 
-  CLEANING_WIPING_MIRRORS_B1, // B1 - Cleaning & wiping of mirrors & shakes in short vestibule etc.
-  DUSTBINS_B2, // B2 - Dustbins
-  DOORWAY_AREA_B3, // B3 - Doorway area, area under seats, toilets and footpaths
+  CLEANING_WIPING_MIRRORS_B1,
+  DUSTBINS_B2,
+  DOORWAY_AREA_B3,
 
-  DISPOSAL_OF_GARBAGE_D1, // D1 - Garbage collected
-  DISPOSAL_OF_GARBAGE_D2, // D2 - Garbage disposed
+  DISPOSAL_OF_GARBAGE_D1,
+  DISPOSAL_OF_GARBAGE_D2,
 }
 
-// Extension to get display name and max marks for Section enum
 extension SectionExtension on Section {
   String get displayName {
     switch (this) {
@@ -57,10 +52,6 @@ extension SectionExtension on Section {
   }
 
   int? get maxMarks {
-    // These max marks need to be confirmed based on your actual scoring logic.
-    // Assuming each scoring item is out of 1 for a total of 9 items, making total 9.
-    // If the total score for the scorecard is 15 as implied by A_1_SCORE CARD (1).jpg,
-    // then these values will need to be adjusted to sum up to 15.
     switch (this) {
       case Section.TOILET_COMPLETE_CLEANLINESS_T1:
         return 1;
@@ -81,7 +72,7 @@ extension SectionExtension on Section {
       case Section.DISPOSAL_OF_GARBAGE_D2:
         return 1;
       default:
-        return null; // Not a scoring section
+        return null;
     }
   }
 
@@ -111,7 +102,6 @@ extension SectionExtension on Section {
   }
 }
 
-// Helper for title case conversion
 extension StringExtension on String {
   String toTitleCase() {
     if (isEmpty) return this;
@@ -125,12 +115,10 @@ extension StringExtension on String {
 }
 
 class CoachColumnData {
-  String coachNo; // e.g., "C1", "C2", etc.
-  Map<Section, int?>
-  scores; // Scores for each section (e.g., {Section.TOILET_T1: 1})
-  String? remarks; // Remarks specific to this coach
-  int?
-  totalScoreObtained; // Calculated total for this coach for display on the card
+  String coachNo;
+  Map<Section, int?> scores;
+  String? remarks;
+  int? totalScoreObtained;
 
   CoachColumnData({
     required this.coachNo,
@@ -163,21 +151,18 @@ class CoachColumnData {
 class CoachCleaningInspectionData {
   String? agreementNo;
   DateTime? agreementDate;
-  DateTime? dateOfInspection; // Used for Date of Inspection
+  DateTime? dateOfInspection;
   String? nameOfContractor;
   String? nameOfSupervisor;
   String? trainNo;
-  int?
-  coachNoInRake; // This is the single coach number from the header form (if applicable)
+  int? coachNoInRake;
   TimeOfDay? timeWorkStarted;
   TimeOfDay? timeWorkCompleted;
-  int?
-  totalNoOfCoaches; // The number of coaches entered to generate tabs for scoring
-  String? inaccessibleCoaches; // From A_1_SCORE CARD (1).jpg
-  String?
-  overallRemarks; // NEW: If you need an overall remarks field for the entire inspection
+  int? totalNoOfCoaches;
+  String? inaccessibleCoaches;
+  String? overallRemarks;
 
-  List<CoachColumnData> coachColumns; // List of individual coach scorecards
+  List<CoachColumnData> coachColumns;
 
   CoachCleaningInspectionData({
     this.agreementNo,
@@ -191,27 +176,19 @@ class CoachCleaningInspectionData {
     this.timeWorkCompleted,
     this.totalNoOfCoaches,
     this.inaccessibleCoaches,
-    this.overallRemarks, // Initialize new field
+    this.overallRemarks,
     List<CoachColumnData>? coachColumns,
   }) : coachColumns = coachColumns ?? [];
 
-  // Getters for PDF service and display (addressing "getter isn't defined" errors)
   List<Section> get scoringParameters {
-    // Addresses 'parameters' getter error
     return Section.values.where((s) => s.maxMarks != null).toList();
   }
 
   String? get coachNo {
-    // Addresses 'coachNo' getter error
     return coachNoInRake?.toString();
   }
 
   String? get timeOfInspection {
-    // Addresses 'timeOfInspection' getter error
-    // This getter is ambiguous if referring to a single time.
-    // It's safer to use dateOfInspection, timeWorkStarted, timeWorkCompleted directly.
-    // However, if the PDF service specifically calls `inspectionData.timeOfInspection`,
-    // this provides a fallback by combining date and start time.
     if (dateOfInspection != null && timeWorkStarted != null) {
       final dt = DateTime(
         dateOfInspection!.year,
@@ -226,21 +203,12 @@ class CoachCleaningInspectionData {
   }
 
   String? get supervisorName {
-    // Addresses 'supervisorName' getter error
     return nameOfSupervisor;
   }
 
   String? get remarks {
-    // Addresses 'remarks' getter error
-    // This getter is provided if you intend to have a single "overallRemarks" for the inspection.
-    // If remarks are strictly per coach, then remove this getter and ensure PDF access coach.remarks.
     return overallRemarks;
   }
-
-  // The errors for 'items', 'totalMaxMarks', 'totalMarksObtained' at the InspectionData level
-  // likely mean the PDF was trying to sum them up. We use grandTotalScoreObtained
-  // and grandTotalPossibleScore for the overall summary.
-  // Individual coach's total would be accessed via coachColumnData.totalScoreObtained and coachColumnData.getTotalPossibleScore()
 
   int get grandTotalScoreObtained {
     return coachColumns.fold(

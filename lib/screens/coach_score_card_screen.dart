@@ -1,18 +1,15 @@
-// lib/screens/coach_score_card_screen.dart
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // For TextInputFormatter
-import 'package:printing/printing.dart'; // Import the printing package
+import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
 import '../constants/global_variables.dart';
-import '../core/common/widgets/basics.dart'; // Ensure this file exists for verticalSpace etc. and CommonWidgets mixin
+import '../core/common/widgets/basics.dart';
 import '../core/common/widgets/gradient_app_bar.dart';
 import '../core/common/widgets/gradient_button.dart';
-// Corrected import: Make sure this path points to your updated model file
 import '../models/coach_inspection_data.dart';
 import '../providers/coach_cleaning_provider.dart';
-import '../services/coach_cleaning_pdf_service.dart'; // Import your PdfService
+import '../services/coach_cleaning_pdf_service.dart';
 
 class CoachScoreCardScreen extends StatefulWidget {
   const CoachScoreCardScreen({super.key});
@@ -28,7 +25,6 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
   final Map<int, Map<Section, TextEditingController>> _scoreControllers = {};
   final List<GlobalKey<FormState>> _formKeys = [];
 
-  // Instantiate PdfService
   final PdfServices _pdfService = PdfServices();
 
   @override
@@ -37,16 +33,12 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
     final provider = Provider.of<CoachCleaningProvider>(context, listen: false);
     final coachColumns = provider.coachCleaningInspectionData.coachColumns;
 
-    // Initialize TabController only if coachColumns is not empty to avoid errors
-    // if no coaches are defined initially.
     _tabController = TabController(length: coachColumns.length, vsync: this);
 
     _initializeControllers(coachColumns);
 
     _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        // Optionally, you can trigger a save or data refresh here if needed
-      }
+      if (!_tabController.indexIsChanging) {}
     });
   }
 
@@ -55,10 +47,8 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
     _scoreControllers.clear();
     _formKeys.clear();
 
-    // Get scoring sections dynamically from the inspection data model
-    // This is crucial to match the Sections defined in your model
     final List<Section> scoringSections = Section.values
-        .where((s) => s.maxMarks != null) // Filter for actual scoring sections
+        .where((s) => s.maxMarks != null)
         .toList();
 
     for (int i = 0; i < coachColumns.length; i++) {
@@ -93,15 +83,12 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
 
   void _saveScores(CoachCleaningProvider provider) {
     final currentCoachIndex = _tabController.index;
-    // Check if the form key exists for the current index to prevent crashes
+
     if (_formKeys.length <= currentCoachIndex ||
         _formKeys[currentCoachIndex].currentState == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Error: Form not ready for validation. Please restart the app.',
-          ),
-        ),
+      showSnackBar(
+        context,
+        'Error: Form not ready for validation. Please restart the app.',
       );
       return;
     }
@@ -109,11 +96,7 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
     final currentFormKey = _formKeys[currentCoachIndex];
 
     if (!currentFormKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please correct invalid scores before saving.'),
-        ),
-      );
+      showSnackBar(context, 'Please correct invalid scores before saving.');
       return;
     }
 
@@ -123,24 +106,18 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
     currentCoachData.remarks = _remarkControllers[currentCoachIndex].text
         .trim();
 
-    // Ensure we iterate over the actual scoring parameters from the inspection data
     provider.coachCleaningInspectionData.scoringParameters.forEach((section) {
       final controller = _scoreControllers[currentCoachIndex]![section];
       final enteredValue = int.tryParse(controller?.text ?? '');
       currentCoachData.scores[section] = enteredValue;
     });
 
-    // Recalculate total score for the current coach before updating
     currentCoachData.totalScoreObtained = currentCoachData
         .calculateTotalScoreObtained();
 
     provider.updateCoachColumnData(currentCoachIndex, currentCoachData);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Scores and remarks saved for current coach.'),
-      ),
-    );
+    showSnackBar(context, 'Scores and remarks saved for current coach.');
   }
 
   String? _validateScore(String? value, int maxScore) {
@@ -157,18 +134,14 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
   void _generatePdf() async {
     final provider = Provider.of<CoachCleaningProvider>(context, listen: false);
     if (provider.coachCleaningInspectionData.coachColumns.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No coach data to generate PDF.')),
-      );
+      showSnackBar(context, 'No coach data to generate PDF.');
       return;
     }
 
     final currentCoachData =
         provider.coachCleaningInspectionData.coachColumns[_tabController.index];
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Generating PDF...')));
+    showSnackBar(context, 'Generating PDF...');
 
     try {
       final pdfBytes = await _pdfService.generateCoachCleaningPdf(
@@ -181,14 +154,9 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
         filename: 'coach_score_card_${currentCoachData.coachNo}.pdf',
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF generated and opened successfully!')),
-      );
+      showSnackBar(context, 'PDF generated and opened successfully!');
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to generate PDF: $e')));
-      print('PDF generation error: $e'); // For debugging
+      showSnackBar(context, 'Failed to generate PDF: $e');
     }
   }
 
@@ -217,8 +185,6 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
           );
         }
 
-        // Re-initialize tab controller and text controllers if the number of coaches changes
-        // This handles scenarios where coaches are added/removed from CoachHeaderFormScreen
         if (_tabController.length != coachColumns.length) {
           _tabController.dispose();
           _tabController = TabController(
@@ -253,7 +219,7 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
                   controller: _tabController,
                   children: coachColumns.map((coachData) {
                     final coachIndex = coachColumns.indexOf(coachData);
-                    // Use a Form widget with a unique GlobalKey for each tab
+
                     return Form(
                       key: _formKeys[coachIndex],
                       child: SingleChildScrollView(
@@ -266,14 +232,13 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: GlobalVariables.reddishPurpleColor,
+                                color: GlobalVariables.purpleColor,
                               ),
                             ),
                             verticalSpace(height: 20),
-                            // Map scoring sections to build input fields
+
                             ...scoringSections.map((section) {
-                              final maxScore = section
-                                  .maxMarks!; // Max marks should be non-null for scoring sections
+                              final maxScore = section.maxMarks!;
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 16.0),
                                 child: _buildScoreInputField(
@@ -281,21 +246,16 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
                                   maxScore: maxScore,
                                   controller:
                                       _scoreControllers[coachIndex]![section]!,
-                                  onChanged: (value) {
-                                    // onChanged is optional for direct controller updates.
-                                    // Validation is triggered on save.
-                                  },
+                                  onChanged: (value) {},
                                   validator: (value) =>
                                       _validateScore(value, maxScore),
                                 ),
                               );
-                            }).toList(),
+                            }),
                             const SizedBox(height: 16),
                             _buildRemarksInputField(
                               controller: _remarkControllers[coachIndex],
-                              onChanged: (value) {
-                                // onChanged is optional for direct controller updates.
-                              },
+                              onChanged: (value) {},
                             ),
                             const SizedBox(height: 30),
                             GradientActionButton(
@@ -330,7 +290,6 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
     required Function(String) onChanged,
     String? Function(String?)? validator,
   }) {
-    // Use itemCode and displayName from the SectionExtension
     String labelText =
         '${section.itemCode != null ? '${section.itemCode} - ' : ''}${section.displayName}';
 
@@ -340,7 +299,7 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
         Text(
           '$labelText (Max: $maxScore)',
           style: const TextStyle(
-            color: GlobalVariables.reddishPurpleColor,
+            color: GlobalVariables.purpleColor,
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -370,7 +329,7 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: const BorderSide(
-                color: GlobalVariables.purpleColor,
+                color: GlobalVariables.deepPurpleColor,
                 width: 2,
               ),
             ),
@@ -385,8 +344,7 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
           ),
           style: const TextStyle(fontSize: 16),
           onChanged: onChanged,
-          validator:
-              validator, // The validator is correctly passed to TextFormField
+          validator: validator,
         ),
       ],
     );
@@ -402,7 +360,7 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
         const Text(
           'Remarks',
           style: TextStyle(
-            color: GlobalVariables.reddishPurpleColor,
+            color: GlobalVariables.purpleColor,
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -423,7 +381,7 @@ class _CoachScoreCardScreenState extends State<CoachScoreCardScreen>
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(
-                color: GlobalVariables.purpleColor,
+                color: GlobalVariables.deepPurpleColor,
                 width: 2,
               ),
             ),

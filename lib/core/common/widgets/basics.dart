@@ -12,4 +12,10 @@ mixin CommonWidgets {
   SizedBox emptyContainer() {
     return const SizedBox(height: 0, width: 0);
   }
+
+  showSnackBar(BuildContext context, title) {
+    return ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(title)));
+  }
 }

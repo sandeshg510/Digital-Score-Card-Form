@@ -1,5 +1,3 @@
-// lib/screens/home_screen.dart
-
 import 'package:digital_score_card_form_for_inspection/core/common/widgets/basics.dart';
 import 'package:digital_score_card_form_for_inspection/core/common/widgets/gradient_button.dart';
 import 'package:digital_score_card_form_for_inspection/screens/coach_header_form_screen.dart';
@@ -48,18 +46,12 @@ class HomeScreen extends StatelessWidget with CommonWidgets {
 
                 label: 'Coach Inspection',
                 onPressed: () {
-                  // TODO: Navigate to Coach Inspection Screen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => CoachHeaderFormScreen(),
                     ),
                   );
-                  // ScaffoldMessenger.of(context).showSnackBar(
-                  //   const SnackBar(
-                  //     content: Text('Coach Inspection not yet implemented.'),
-                  //   ),
-                  // );
                 },
               ),
               verticalSpace(height: 10),

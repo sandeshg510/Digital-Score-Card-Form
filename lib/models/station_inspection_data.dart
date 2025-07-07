@@ -1,9 +1,4 @@
-// lib/models/station_inspection_data.dart
-
 import 'package:flutter/material.dart';
-
-// Removed defaultCoachColumns as it will be dynamic
-// const List<String> defaultCoachColumns = [...];
 
 class StationInspectionData {
   final String? woNo;
@@ -19,7 +14,7 @@ class StationInspectionData {
   final int? noOfCoachesAttended;
   final int? totalNoOfCoaches;
   final List<StationSection> sections;
-  final List<String> coachColumns; // List of coach IDs (e.g., C1, C2, ...)
+  final List<String> coachColumns;
 
   StationInspectionData({
     this.woNo,
@@ -39,7 +34,6 @@ class StationInspectionData {
   });
 
   factory StationInspectionData.initial() {
-    // Initialize with empty lists for dynamic content
     return StationInspectionData(
       woNo: null,
       date: null,
@@ -53,14 +47,11 @@ class StationInspectionData {
       depTime: null,
       noOfCoachesAttended: null,
       totalNoOfCoaches: null,
-      coachColumns: [], // Start with no coaches
-      sections: _createInitialStationSections(
-        [],
-      ), // Pass an empty list to initialize sections
+      coachColumns: [],
+      sections: _createInitialStationSections([]),
     );
   }
 
-  // --- CopyWith method (essential for immutability and state management) ---
   StationInspectionData copyWith({
     String? woNo,
     DateTime? date,
@@ -95,7 +86,6 @@ class StationInspectionData {
     );
   }
 
-  // --- toJson method (for sending data to backend) ---
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {
       'woNo': woNo,
@@ -173,11 +163,10 @@ class StationParameter {
 }
 
 class StationSubParameter {
-  final String id; // e.g., T1, B1, D1
-  final String name; // e.g., Toilet 1, Basin 1
-  final List<String> coachIds; // Coaches this sub-parameter applies to
-  final Map<String, int?>
-  scores; // Map of coachId to score (e.g., {'C1': 8, 'C2': 5})
+  final String id;
+  final String name;
+  final List<String> coachIds;
+  final Map<String, int?> scores;
 
   StationSubParameter({
     required this.id,
@@ -205,12 +194,10 @@ class StationSubParameter {
   }
 }
 
-// Helper function to create initial sections based on provided coach IDs
-// This function will be called by the provider when totalNoOfCoaches changes
 List<StationSection> _createInitialStationSections(List<String> coachColumns) {
   return [
     StationSection(
-      name: '', // Empty name for the main section to avoid extra heading in UI
+      name: '',
       parameters: [
         StationParameter(
           name:
